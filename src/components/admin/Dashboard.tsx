@@ -27,11 +27,36 @@ export default function Dashboard() {
       
       // Obtener estadísticas del dashboard desde Laravel
       const dashboardStats = await getDashboardStats();
-      setStats(dashboardStats);
-
+      
       // Obtener reservas de hoy
       const todayRes = await getTodayReservations();
-      setRecentReservations(todayRes);
+      
+      // Filtrar reservas canceladas para la lista visible
+      const activeReservations = todayRes.filter(r => r.status !== 'cancelled');
+      setRecentReservations(todayRes); // Mostrar todas incluyendo canceladas
+      
+      // Recalcular ingresos excluyendo canceladas
+      const actualRevenue = todayRes
+        .filter(r => r.status !== 'cancelled')
+        .reduce((sum, r) => {
+          const price = typeof r.menu?.price === 'string' 
+            ? parseFloat(r.menu.price) 
+            : (r.menu?.price || 0);
+          return sum + price;
+        }, 0);
+      
+      // Recalcular pendientes (confirmadas pero no entregadas)
+      const pendingCount = todayRes.filter(r => 
+        r.status === 'confirmed' || r.status === 'pending'
+      ).length;
+      
+      // Actualizar stats con valores corregidos
+      setStats({
+        ...dashboardStats,
+        today_revenue: actualRevenue,
+        pending_reservations: pendingCount,
+        today_reservations: activeReservations.length, // Solo contar las activas
+      });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -146,9 +171,16 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-4">
               {recentReservations.map((reservation) => (
-                <div key={reservation.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                <div 
+                  key={reservation.id} 
+                  className={`flex items-center justify-between border-b pb-3 last:border-0 ${
+                    reservation.status === 'cancelled' ? 'opacity-50' : ''
+                  }`}
+                >
                   <div className="flex-1">
-                    <p className="font-medium">{reservation.user?.full_name || reservation.user?.email || 'Usuario'}</p>
+                    <p className={`font-medium ${reservation.status === 'cancelled' ? 'line-through' : ''}`}>
+                      {reservation.user?.full_name || reservation.user?.email || 'Usuario'}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <Clock className="w-3 h-3 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">
@@ -158,7 +190,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     {getStatusBadge(reservation.status)}
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`text-xs mt-1 ${reservation.status === 'cancelled' ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
                       S/ {typeof reservation.menu?.price === 'string' 
                         ? parseFloat(reservation.menu.price).toFixed(2) 
                         : reservation.menu?.price?.toFixed(2) || '0.00'}

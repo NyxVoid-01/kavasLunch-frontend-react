@@ -16,7 +16,12 @@ const Index = () => {
 
   useEffect(() => {
     if (!isLoading && user) {
-      navigate('/menus/user');
+      // Redirigir según el rol del usuario
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/menus/user');
+      }
     }
   }, [user, isLoading, navigate]);
 

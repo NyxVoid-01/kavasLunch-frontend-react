@@ -50,14 +50,30 @@ export default function Auth() {
 
     try {
       loginSchema.parse({ email, password });
-      await authLogin({ email, password });
+      const result = await authLogin({ email, password });
       
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión exitosamente",
       });
       
-      navigate('/menus/user');
+      // Redirigir según el rol del usuario
+      // Obtener el usuario actualizado del contexto después del login
+      // Esperamos un poco para que el contexto se actualice
+      setTimeout(() => {
+        // Verificar el localStorage directamente para obtener el usuario
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/menus/user');
+          }
+        } else {
+          navigate('/menus/user');
+        }
+      }, 100);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -105,7 +121,20 @@ export default function Auth() {
         description: "Tu cuenta ha sido creada exitosamente",
       });
       
-      navigate('/menus/user');
+      // Redirigir según el rol del usuario (por defecto será user, pero verificamos por si acaso)
+      setTimeout(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/menus/user');
+          }
+        } else {
+          navigate('/menus/user');
+        }
+      }, 100);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
