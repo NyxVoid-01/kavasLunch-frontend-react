@@ -1,0 +1,22 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: kavas-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  # Placeholder para el backend PHP-Laravel (agregar después)
+  # backend:
+  #   build:
+  #     context: ../kavasLunch-backend-php-laravel
+  #     dockerfile: Dockerfile
+  #   container_name: kavas-backend
+  #   ports:
+  #     - "8000:8000"
