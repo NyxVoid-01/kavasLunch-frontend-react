@@ -69,9 +69,12 @@ export interface Reservation {
     id: string;
     date: string;
     price: string | number;
-    appetizer?: Dish;
-    main_dish?: Dish;
-    drink?: Dish;
+    appetizer?: string; // Nombre del plato
+    main_dish?: string; // Nombre del plato
+    drink?: string; // Nombre del plato
+    appetizer_dish?: Dish; // Objeto completo del plato
+    main_dish_dish?: Dish; // Objeto completo del plato
+    drink_dish?: Dish; // Objeto completo del plato
   };
   payment?: Payment;
 }

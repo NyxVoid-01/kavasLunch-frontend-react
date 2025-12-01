@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Package, Clock, CheckCircle, XCircle, Calendar, Eye, Search, ArrowLeft, ChevronLeft, ChevronRight, XCircle as XCircle2 } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Calendar, Eye, Search, ArrowLeft, ChevronLeft, ChevronRight, XCircle as XCircle2, Mail } from 'lucide-react';
 
 // Helper para parsear fechas de forma segura
 const safeParseDate = (dateStr: string): Date => {
@@ -313,6 +313,16 @@ export default function Reservations() {
                   </div>
                   
                   <CardContent className="p-6 space-y-4">
+                    {/* Indicador de Correo Enviado */}
+                    {reservation.status === 'pending' && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-green-600 shrink-0" />
+                        <p className="text-xs text-green-700 font-medium">
+                          Correo de confirmación enviado
+                        </p>
+                      </div>
+                    )}
+
                     {/* Pickup Code */}
                     <div className="bg-primary text-primary-foreground p-4 rounded-lg text-center">
                       <p className="text-xs font-medium mb-1">Código de Recojo</p>

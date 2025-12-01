@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserMenuById } from '@/services/menus';
 import { createReservation, getAvailableSlots } from '@/services/reservations';
 import { getPaymentMethods, processPayment } from '@/services/payments';
-import type { DailyMenu, TimeSlot, PaymentMethod } from '@/types';
+import type { DailyMenu, TimeSlot, PaymentMethod, Reservation } from '@/types';
 import Header from '@/components/Header';
+import ReservationSuccessModal from '@/components/ReservationSuccessModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,8 @@ export default function Reserve() {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdReservation, setCreatedReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -138,33 +141,54 @@ const handleReservation = async (e: React.FormEvent) => {
         payment_method: paymentMethod,
       };
 
+      // Paso 1: Crear la reserva
+      toast.loading('Creando tu reserva...', { id: 'reservation-process' });
       const reservation = await createReservation(reservationData);
+      
+      toast.success('¡Reserva creada!', { 
+        id: 'reservation-process',
+        description: 'Procesando pago...',
+        duration: 2000,
+      });
 
-      // Procesar el pago después de crear la reserva
+      // Paso 2: Procesar el pago
       try {
         const paymentData: any = {
           reservation_id: reservation.id,
           payment_method: paymentMethod,
         };
 
-        // Solo para efectivo o métodos que no requieren datos adicionales
         await processPayment(paymentData);
 
-        toast.success('¡Reserva y pago procesados con éxito!', {
-          description: `Código de recojo: ${reservation.code || reservation.id.substring(0, 8).toUpperCase()}. Revisa tu correo.`,
-          duration: 5000,
+        // Actualizar estado de pago en la reserva local
+        const updatedReservation = {
+          ...reservation,
+          payment_status: 'paid' as const,
+        };
+
+        setCreatedReservation(updatedReservation);
+        setShowSuccessModal(true);
+
+        toast.success('¡Todo listo!', {
+          description: '✉️ Correo de confirmación enviado',
+          duration: 4000,
         });
       } catch (paymentError: any) {
         console.error('Error processing payment:', paymentError);
-        // Aunque falle el pago, la reserva ya fue creada
-        toast.warning('Reserva creada pero hubo un problema con el pago', {
-          description: 'Puedes completar el pago más tarde desde Mis Reservas',
+        
+        // Aunque falle el pago, mostrar la reserva creada
+        setCreatedReservation(reservation);
+        setShowSuccessModal(true);
+        
+        toast.warning('Reserva creada - Pago pendiente', {
+          description: 'Completa el pago desde Mis Reservas',
+          duration: 5000,
         });
       }
-
-      navigate('/reservations');
     } catch (error: any) {
       console.error('Error creating reservation:', error);
+      
+      toast.dismiss('reservation-process');
       
       // Mostrar errores de validación si existen
       if (error.response?.data?.errors) {
@@ -178,6 +202,14 @@ const handleReservation = async (e: React.FormEvent) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    // Esperar un momento antes de redirigir para que se vea la animación de cierre
+    setTimeout(() => {
+      navigate('/reservations');
+    }, 300);
   };
 
   if (loading) {
@@ -469,6 +501,16 @@ const handleReservation = async (e: React.FormEvent) => {
           </div>
         </div>
       </main>
+
+      {/* Modal de Confirmación */}
+      {createdReservation && (
+        <ReservationSuccessModal
+          open={showSuccessModal}
+          onClose={handleCloseSuccessModal}
+          reservation={createdReservation}
+          userEmail={user?.email || ''}
+        />
+      )}
     </div>
   );
 }

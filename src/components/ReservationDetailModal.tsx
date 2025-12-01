@@ -1,8 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, Clock, CreditCard, Package } from 'lucide-react';
+import { Calendar, Clock, CreditCard, Package, Mail } from 'lucide-react';
 
 // Helper para parsear fechas de forma segura
 const safeParseDate = (dateStr: string): Date => {
@@ -16,9 +17,12 @@ interface Reservation {
   reservation_date: string;
   time_slot?: string;
   time_slot_display?: string;
+  pickup_time_slot?: string;
   status: 'pending' | 'delivered' | 'cancelled';
   payment_method: string;
+  payment_status?: 'pending' | 'paid';
   total_price: string | number;
+  qr_code_url?: string;
   created_at: string;
   daily_menu?: {
     date?: string;
@@ -26,6 +30,14 @@ interface Reservation {
     appetizer?: { name: string; description: string } | null;
     main_dish?: { name: string; description: string } | null;
     drink?: { name: string; description: string } | null;
+  };
+  menu?: {
+    id: string;
+    date: string;
+    price: string | number;
+    appetizer?: string | { name: string; description: string };
+    main_dish?: string | { name: string; description: string };
+    drink?: string | { name: string; description: string };
   };
 }
 
@@ -71,6 +83,21 @@ export default function ReservationDetailModal({ reservation, open, onOpenChange
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Confirmación de Correo */}
+          {reservation.status === 'pending' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start gap-2">
+              <Mail className="w-5 h-5 text-green-600 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-900">
+                  Correo de confirmación enviado
+                </p>
+                <p className="text-xs text-green-700 mt-1">
+                  Revisa tu bandeja de entrada para más detalles
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Pickup Code */}
           <div className="bg-primary text-primary-foreground p-6 rounded-lg text-center">
             <p className="text-sm font-medium mb-2">Código de Recojo</p>
