@@ -4,12 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getPublicMenus } from '@/services/menus';
 import type { DailyMenu } from '@/types';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function Menus() {
@@ -17,20 +19,56 @@ export default function Menus() {
   const navigate = useNavigate();
   const [menus, setMenus] = useState<DailyMenu[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateFilter, setDateFilter] = useState<string>('today-tomorrow');
+  const [stockFilter, setStockFilter] = useState<string>('all');
 
   // FASE 2: Esta es una página PÚBLICA - no requiere autenticación
   // Solo redirige al login cuando el usuario intenta reservar (ver handleReserve)
 
   useEffect(() => {
     fetchMenus();
-  }, []);
+  }, [dateFilter, stockFilter]);
 
-const fetchMenus = async () => {
+  const getDateRange = () => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    switch (dateFilter) {
+      case 'today-tomorrow':
+        return { start: now, end: tomorrow };
+      case 'this-week':
+        return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'next-week':
+        return { start: startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }), end: endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }) };
+      case 'all':
+      default:
+        return null;
+    }
+  };
+
+  const fetchMenus = async () => {
     try {
       setLoading(true);
       // Usar servicio de Laravel - endpoint público
-      const menus = await getPublicMenus();
-      setMenus(menus);
+      let allMenus = await getPublicMenus();
+      
+      // Aplicar filtros
+      const dateRange = getDateRange();
+      if (dateRange) {
+        allMenus = allMenus.filter(menu => {
+          const menuDate = new Date(menu.date);
+          return menuDate >= dateRange.start && menuDate <= dateRange.end;
+        });
+      }
+
+      if (stockFilter === 'available') {
+        allMenus = allMenus.filter(menu => menu.stock > 0);
+      } else if (stockFilter === 'low-stock') {
+        allMenus = allMenus.filter(menu => menu.stock > 0 && menu.stock <= 10);
+      }
+
+      setMenus(allMenus);
     } catch (error: any) {
       console.error('Error fetching menus:', error);
       toast.error('Error al cargar los menús');
@@ -67,25 +105,67 @@ const fetchMenus = async () => {
     );
   }
 
-return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/10">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/10 flex flex-col">
       <Header />
       
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2">Menús de la Semana</h2>
           <p className="text-muted-foreground">Reserva tu almuerzo con anticipación y recoge con tu código</p>
         </div>
 
+        {/* Filters */}
+        <Card className="mb-8 border-2 border-primary/20">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-foreground">Fecha</label>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="border-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today-tomorrow">Hoy y Mañana</SelectItem>
+                    <SelectItem value="this-week">Esta Semana</SelectItem>
+                    <SelectItem value="next-week">Próxima Semana</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-foreground">Disponibilidad</label>
+                <Select value={stockFilter} onValueChange={setStockFilter}>
+                  <SelectTrigger className="border-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="available">Solo Disponibles</SelectItem>
+                    <SelectItem value="low-stock">Pocas Unidades</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {menus.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
-              <p className="text-muted-foreground">No hay menús disponibles en este momento</p>
+              <p className="text-muted-foreground">No hay menús disponibles con los filtros seleccionados</p>
             </CardContent>
           </Card>
         ) : (
-<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {menus.map((menu) => (
               <Card key={menu.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-primary/20">
                 <CardHeader className="bg-gradient-to-br from-primary/15 to-accent/25 border-b-2 border-accent/30 pb-4">
@@ -178,6 +258,7 @@ return (
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

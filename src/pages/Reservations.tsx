@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserReservations, cancelReservation, getReservationById } from '@/services/reservations';
 import type { Reservation } from '@/types';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import ReservationDetailModal from '@/components/ReservationDetailModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -211,7 +212,7 @@ export default function Reservations() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
       <ReservationDetailModal 
@@ -409,6 +410,7 @@ export default function Reservations() {
           </>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

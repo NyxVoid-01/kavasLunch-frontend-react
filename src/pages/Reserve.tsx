@@ -6,6 +6,7 @@ import { createReservation, getAvailableSlots } from '@/services/reservations';
 import { getPaymentMethods, processPayment } from '@/services/payments';
 import type { DailyMenu, TimeSlot, PaymentMethod, Reservation } from '@/types';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import ReservationSuccessModal from '@/components/ReservationSuccessModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -214,14 +215,15 @@ const handleReservation = async (e: React.FormEvent) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-20 flex-grow">
           <div className="text-center space-y-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-muted-foreground">Cargando información...</p>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -229,10 +231,10 @@ const handleReservation = async (e: React.FormEvent) => {
   if (!menu) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 py-8 max-w-6xl flex-grow">
         <Button
           variant="ghost"
           onClick={() => navigate('/menus/user')}
@@ -350,19 +352,42 @@ const handleReservation = async (e: React.FormEvent) => {
                       <Clock className="w-4 h-4" />
                       Horario de Recojo
                     </Label>
-                    <RadioGroup value={timeSlot} onValueChange={setTimeSlot}>
-                      <div className="space-y-2">
-                        {timeSlots.map((slot) => (
-                          <div key={slot.value} className={`flex items-center space-x-3 p-3 border-2 rounded-lg transition-colors ${slot.available ? 'border-border hover:border-primary cursor-pointer bg-card hover:bg-accent/5' : 'border-muted bg-muted/50 cursor-not-allowed opacity-60'}`}>
-                            <RadioGroupItem value={slot.value} id={slot.value} disabled={!slot.available} />
-                            <Label htmlFor={slot.value} className={`flex-1 font-semibold ${slot.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                              {slot.label}
-                              {!slot.available && <span className="text-xs text-muted-foreground ml-2">(No disponible)</span>}
-                            </Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot.value}
+                          type="button"
+                          onClick={() => slot.available && setTimeSlot(slot.value)}
+                          disabled={!slot.available}
+                          className={`
+                            relative p-3 rounded-lg border-2 font-semibold text-sm transition-all
+                            ${timeSlot === slot.value && slot.available
+                              ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105'
+                              : slot.available
+                                ? 'border-border bg-card hover:border-primary hover:bg-accent/10 hover:scale-105'
+                                : 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
+                            }
+                          `}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{slot.label.split(' - ')[0]}</span>
                           </div>
-                        ))}
-                      </div>
-                    </RadioGroup>
+                          {timeSlot === slot.value && slot.available && (
+                            <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                          {!slot.available && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded">
+                                No disp.
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Payment Method */}
@@ -511,6 +536,7 @@ const handleReservation = async (e: React.FormEvent) => {
           userEmail={user?.email || ''}
         />
       )}
+      <Footer />
     </div>
   );
 }

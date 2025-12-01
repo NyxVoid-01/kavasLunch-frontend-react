@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { UtensilsCrossed } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido').endsWith('@upch.pe', 'Debe usar su correo @upch.pe'),
@@ -127,8 +128,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+      <div className="w-full max-w-md space-y-6 flex-grow flex items-center justify-center flex-col">
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
             <div className="bg-primary text-primary-foreground p-4 rounded-2xl">
@@ -248,6 +249,7 @@ export default function Auth() {
           </CardContent>
         </Card>
       </div>
+      <Footer />
     </div>
   );
 }

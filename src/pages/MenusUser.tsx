@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserMenus } from '@/services/menus';
 import type { DailyMenu } from '@/types';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -115,10 +116,10 @@ export default function MenusUser() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         {/* Recommendations Banner */}
         {recommendedMenus.length > 0 && (
           <Card className="mb-8 bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-2 border-primary/20 overflow-hidden">
@@ -347,6 +348,7 @@ export default function MenusUser() {
           </>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ShieldCheck, UtensilsCrossed, CalendarDays, Package, BarChart3, ArrowLeft, LayoutDashboard } from 'lucide-react';
@@ -44,10 +45,10 @@ export default function Admin() {
   const CurrentComponent = modules.find(m => m.id === currentView)?.component || Dashboard;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <Button
           variant="ghost"
           onClick={() => navigate('/menus/user')}
@@ -103,6 +104,7 @@ export default function Admin() {
         {/* Current Module */}
         <CurrentComponent />
       </main>
+      <Footer />
     </div>
   );
 }

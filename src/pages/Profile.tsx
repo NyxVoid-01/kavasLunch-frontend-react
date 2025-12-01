@@ -5,6 +5,7 @@ import { getProfile } from '@/services/auth';
 import { getUserReservations } from '@/services/reservations';
 import type { Reservation } from '@/types';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -128,10 +129,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex-grow">
         <Button
           variant="ghost"
           onClick={() => navigate('/menus/user')}
@@ -244,6 +245,7 @@ export default function Profile() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
