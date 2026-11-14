@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UtensilsCrossed, Calendar, Clock, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import Footer from '@/components/Footer';
+import { parseLocalDate } from '@/lib/dates';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -130,7 +131,7 @@ const Index = () => {
                 <CardHeader className="bg-gradient-to-br from-primary/15 to-accent/25 border-b-2 border-accent/30 pb-6">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-primary">
-                      {new Date(todayMenu.date).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'short' })}
+                      {parseLocalDate(todayMenu.date).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'short' })}
                     </CardTitle>
                     <div className="text-2xl font-bold text-primary">
                       S/ {typeof todayMenu.price === 'number' ? todayMenu.price.toFixed(2) : todayMenu.price}

@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UtensilsCrossed, LogOut, User, ShieldCheck, History, Home, UserCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -12,20 +12,20 @@ export default function Header() {
   return (
     <header className="bg-primary border-b-4 border-accent shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Logo and Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(user ? '/menus/user' : '/menus')}>
-            <div className="bg-accent text-primary p-3 rounded-xl shadow-md hover:scale-105 transition-transform">
+          <Link to={user ? '/menus/user' : '/menus'} className="group flex items-center gap-3">
+            <span className="flex bg-accent text-primary p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
               <UtensilsCrossed className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-accent tracking-tight">KAVAS-LUNCH</h1>
-              <p className="text-xs text-primary-foreground/90 font-medium">Comedor Universitario UPCH</p>
-            </div>
-          </div>
-          
+            </span>
+            <span>
+              <span className="block text-2xl font-bold text-accent tracking-tight">KAVAS-LUNCH</span>
+              <span className="block text-xs text-primary-foreground/90 font-medium">Comedor Universitario UPCH</span>
+            </span>
+          </Link>
+
           {/* Navigation and User Info */}
-          <div className="flex items-center gap-3">
+          <nav aria-label="Principal" className="flex flex-wrap items-center gap-3">
             {user && (
               <>
                 <Button
@@ -99,7 +99,7 @@ export default function Header() {
                 </Button>
               </>
             )}
-          </div>
+          </nav>
         </div>
       </div>
     </header>

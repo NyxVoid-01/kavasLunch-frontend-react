@@ -10,6 +10,7 @@ import { Plus, Save, Trash2, Edit, Minus, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate, todayISO } from '@/lib/dates';
 
 interface Dish {
   id: string;
@@ -207,7 +208,7 @@ export default function MenusManagement() {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={todayISO()}
                   disabled={!!editingMenu}
                 />
                 {formData.date && !editingMenu && menus.find(m => m.date === formData.date) && (
@@ -293,7 +294,7 @@ export default function MenusManagement() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <CardTitle className="text-lg">
-                  {format(new Date(menu.date), "EEEE, d 'de' MMMM", { locale: es })}
+                  {format(parseLocalDate(menu.date), "EEEE, d 'de' MMMM", { locale: es })}
                 </CardTitle>
                 <p className="text-xl font-bold text-primary">S/ {typeof menu.price === 'string' ? parseFloat(menu.price).toFixed(2) : menu.price.toFixed(2)}</p>
               </div>

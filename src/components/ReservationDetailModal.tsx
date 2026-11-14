@@ -3,13 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 import { Calendar, Clock, CreditCard, Package, Mail } from 'lucide-react';
-
-// Helper para parsear fechas de forma segura
-const safeParseDate = (dateStr: string): Date => {
-  const cleanDate = dateStr.split('T')[0];
-  return new Date(cleanDate + 'T00:00:00');
-};
 
 interface Reservation {
   id: string;
@@ -113,7 +108,7 @@ export default function ReservationDetailModal({ reservation, open, onOpenChange
               <div>
                 <p className="text-xs text-muted-foreground">Fecha de Reserva</p>
                 <p className="font-semibold">
-                  {format(safeParseDate(reservation.reservation_date), "d 'de' MMMM, yyyy", { locale: es })}
+                  {format(parseLocalDate(reservation.reservation_date), "d 'de' MMMM, yyyy", { locale: es })}
                 </p>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { Check, Mail, Calendar, Clock, Receipt, X } from 'lucide-react';
 import type { Reservation } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 
 interface ReservationSuccessModalProps {
   open: boolean;
@@ -23,7 +24,7 @@ export default function ReservationSuccessModal({
   
   const formatDate = (dateStr: string) => {
     try {
-      return format(new Date(dateStr), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+      return format(parseLocalDate(dateStr), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
     } catch {
       return dateStr;
     }

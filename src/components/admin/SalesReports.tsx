@@ -10,6 +10,7 @@ import { TrendingUp, Package, CheckCircle, Clock, Download, Calendar as Calendar
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
@@ -51,7 +52,7 @@ export default function SalesReports() {
       
       // Filter by date range
       const filteredReservations = reservationsArray.filter(r => {
-        const resDate = new Date(r.reservation_date);
+        const resDate = parseLocalDate(r.reservation_date);
         return resDate >= dateRange.from && resDate <= (dateRange.to || dateRange.from);
       });
 
@@ -91,7 +92,7 @@ export default function SalesReports() {
     }
 
     const excelData = recentReservations.map(report => ({
-      'Fecha': format(new Date(report.reservation_date), 'dd/MM/yyyy'),
+      'Fecha': format(parseLocalDate(report.reservation_date), 'dd/MM/yyyy'),
       'Usuario': report.user?.full_name || report.user?.email || 'N/A',
       'Email': report.user?.email || 'N/A',
       'Estado': report.status === 'delivered' ? 'Entregado' : report.status === 'pending' ? 'Pendiente' : 'Cancelado',

@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 import { CreditCard, Smartphone, Banknote, Check, ArrowLeft, Clock, Receipt } from 'lucide-react';
 
 export default function Reserve() {
@@ -260,7 +261,7 @@ const handleReservation = async (e: React.FormEvent) => {
                   {(() => {
                     try {
                       const dateStr = menu.date.split('T')[0];
-                      return format(new Date(dateStr), "EEEE, d 'de' MMMM", { locale: es });
+                      return format(parseLocalDate(dateStr), "EEEE, d 'de' MMMM", { locale: es });
                     } catch (e) {
                       return menu.date;
                     }

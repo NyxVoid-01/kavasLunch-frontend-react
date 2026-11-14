@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, User, Mail, Calendar, TrendingUp, Package, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 
 interface Stats {
   totalReservations: number;
@@ -62,7 +63,7 @@ export default function Profile() {
         // Favorite day of week
         const dayCount: Record<string, number> = {};
         reservations.forEach(r => {
-          const day = format(new Date(r.reservation_date), 'EEEE', { locale: es });
+          const day = format(parseLocalDate(r.reservation_date), 'EEEE', { locale: es });
           dayCount[day] = (dayCount[day] || 0) + 1;
         });
         const favoriteDay = Object.keys(dayCount).length > 0

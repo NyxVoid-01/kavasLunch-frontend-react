@@ -13,14 +13,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 import { Package, Clock, CheckCircle, XCircle, Calendar, Eye, Search, ArrowLeft, ChevronLeft, ChevronRight, XCircle as XCircle2, Mail } from 'lucide-react';
-
-// Helper para parsear fechas de forma segura
-const safeParseDate = (dateStr: string): Date => {
-  // Si viene con timestamp, extraer solo la fecha
-  const cleanDate = dateStr.split('T')[0];
-  return new Date(cleanDate + 'T00:00:00');
-};
 
 // Helper para normalizar datos del backend Laravel
 const normalizeReservation = (reservation: any): Reservation => {
@@ -187,7 +181,7 @@ export default function Reservations() {
       return (
         reservation.id.toLowerCase().includes(search) ||
         reservation.daily_menu?.main_dish?.name?.toLowerCase().includes(search) ||
-        format(safeParseDate(reservation.reservation_date), "d 'de' MMMM", { locale: es }).toLowerCase().includes(search)
+        format(parseLocalDate(reservation.reservation_date), "d 'de' MMMM", { locale: es }).toLowerCase().includes(search)
       );
     } catch (e) {
       // Si hay error parseando la fecha, solo buscar por ID
@@ -301,7 +295,7 @@ export default function Reservations() {
                         {getStatusIcon(reservation.status)}
                         <div>
                           <p className="font-semibold text-lg">
-                            {format(safeParseDate(reservation.reservation_date), "d 'de' MMMM", { locale: es })}
+                            {format(parseLocalDate(reservation.reservation_date), "d 'de' MMMM", { locale: es })}
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <Clock className="w-3 h-3" />

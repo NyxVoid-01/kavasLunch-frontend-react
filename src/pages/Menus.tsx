@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 
 export default function Menus() {
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export default function Menus() {
     
     switch (dateFilter) {
       case 'today-tomorrow':
-        return { start: now, end: tomorrow };
+        return { start: startOfDay(now), end: endOfDay(tomorrow) };
       case 'this-week':
         return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
       case 'next-week':
@@ -57,7 +58,7 @@ export default function Menus() {
       const dateRange = getDateRange();
       if (dateRange) {
         allMenus = allMenus.filter(menu => {
-          const menuDate = new Date(menu.date);
+          const menuDate = parseLocalDate(menu.date);
           return menuDate >= dateRange.start && menuDate <= dateRange.end;
         });
       }
@@ -173,7 +174,7 @@ export default function Menus() {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-primary" />
                       <CardTitle className="text-lg text-primary">
-                        {format(new Date(menu.date), "EEEE", { locale: es })}
+                        {format(parseLocalDate(menu.date), "EEEE", { locale: es })}
                       </CardTitle>
                     </div>
                     <Badge className={menu.stock > 10 ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'}>
@@ -181,7 +182,7 @@ export default function Menus() {
                     </Badge>
                   </div>
                   <CardDescription className="text-sm">
-                    {format(new Date(menu.date), "d 'de' MMMM, yyyy", { locale: es })}
+                    {format(parseLocalDate(menu.date), "d 'de' MMMM, yyyy", { locale: es })}
                   </CardDescription>
                   <div className="mt-3 pt-3 border-t border-accent/20">
                     <CardDescription className="text-3xl font-bold text-primary">

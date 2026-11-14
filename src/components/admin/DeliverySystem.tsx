@@ -10,6 +10,7 @@ import { Package, CheckCircle, XCircle, RefreshCw, ChevronLeft, ChevronRight, Se
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 
 export default function DeliverySystem() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -277,7 +278,7 @@ export default function DeliverySystem() {
                     <div>
                       <p className="text-muted-foreground">Fecha</p>
                       <p className="font-semibold">
-                        {format(new Date(reservation.menu?.date || reservation.reservation_date), "d 'de' MMM", { locale: es })}
+                        {format(parseLocalDate(reservation.menu?.date || reservation.reservation_date), "d 'de' MMM", { locale: es })}
                       </p>
                     </div>
                     <div>

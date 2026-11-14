@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Filter, ChevronLeft, ChevronRight, Sparkles, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dates';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -45,13 +46,13 @@ export default function MenusUser() {
     
     switch (dateFilter) {
       case 'today-tomorrow':
-        return { start: now, end: tomorrow };
+        return { start: startOfDay(now), end: endOfDay(tomorrow) };
       case 'this-week':
         return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
       case 'next-week':
         return { start: startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }), end: endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }) };
       default:
-        return { start: now, end: tomorrow };
+        return { start: startOfDay(now), end: endOfDay(tomorrow) };
     }
   };
 
@@ -65,7 +66,7 @@ export default function MenusUser() {
       
       // Filtrar por rango de fechas en el frontend
       const filtered = allMenus.filter(menu => {
-        const menuDate = new Date(menu.date);
+        const menuDate = parseLocalDate(menu.date);
         return menuDate >= start && menuDate <= end;
       });
 
@@ -149,7 +150,7 @@ export default function MenusUser() {
                         </Badge>
                       </div>
                       <CardTitle className="text-base">
-                        {format(new Date(menu.date), "EEEE d 'de' MMM", { locale: es })}
+                        {format(parseLocalDate(menu.date), "EEEE d 'de' MMM", { locale: es })}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -225,7 +226,7 @@ export default function MenusUser() {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-primary" />
                         <CardTitle className="text-lg text-primary font-bold">
-                          {format(new Date(menu.date), "EEEE", { locale: es })}
+                          {format(parseLocalDate(menu.date), "EEEE", { locale: es })}
                         </CardTitle>
                       </div>
                       {menu.stock === 0 ? (
@@ -239,7 +240,7 @@ export default function MenusUser() {
                       )}
                     </div>
                     <CardDescription className="text-sm font-medium">
-                      {format(new Date(menu.date), "d 'de' MMMM, yyyy", { locale: es })}
+                      {format(parseLocalDate(menu.date), "d 'de' MMMM, yyyy", { locale: es })}
                     </CardDescription>
                     <div className="mt-3 pt-3 border-t border-accent/20">
                       <CardDescription className="text-3xl font-bold text-primary">
