@@ -1,40 +1,17 @@
 import api from '@/lib/api';
-
-// ============================================
-// TIPOS PARA PAGOS
-// ============================================
-
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  instructions?: string;
-}
-
-export interface ProcessPaymentData {
-  reservation_id: string;
-  payment_method: 'yape' | 'credit_card' | 'cash';
-  payment_proof_url?: string; // Para Yape/Plin
-  card_number?: string; // Para tarjeta
-  card_expiry?: string; // Para tarjeta
-  card_cvv?: string; // Para tarjeta
-}
+import type { PaymentMethod, ProcessPaymentData } from '@/types';
 
 export interface ProcessPaymentResponse {
   reservation: {
     id: string;
-    payment_status: string;
+    payment_status: 'pending' | 'paid' | 'failed';
     payment_method: string;
   };
 }
 
-// ============================================
-// ENDPOINTS DE PAGO
-// ============================================
-
 /**
  * Obtener métodos de pago disponibles
+ * GET /api/user/payment/methods
  */
 export const getPaymentMethods = async (): Promise<PaymentMethod[]> => {
   const response = await api.get('/api/user/payment/methods');
@@ -42,7 +19,8 @@ export const getPaymentMethods = async (): Promise<PaymentMethod[]> => {
 };
 
 /**
- * Procesar pago de una reserva
+ * Procesar el pago de una reserva (pasarela simulada)
+ * POST /api/user/payment/process
  */
 export const processPayment = async (data: ProcessPaymentData): Promise<ProcessPaymentResponse> => {
   const response = await api.post('/api/user/payment/process', data);

@@ -49,7 +49,7 @@ export interface Reservation {
   quantity?: number;
   total_price?: string; // Para compatibilidad
   status: 'pending' | 'confirmed' | 'cancelled' | 'delivered';
-  payment_status?: 'pending' | 'paid';
+  payment_status?: 'pending' | 'paid' | 'failed';
   payment_method?: string; // cash, card, yape
   time_slot?: string; // Para compatibilidad
   time_slot_display?: string;
@@ -96,21 +96,21 @@ export interface PaymentMethod {
   description: string;
   enabled: boolean;
   instructions?: string;
+  phone?: string | null; // Número al que se envía el pago (Yape / Plin)
 }
 
+// La pasarela es simulada: no se capturan datos de tarjeta ni se exige comprobante
 export interface ProcessPaymentData {
   reservation_id: string;
   payment_method: 'yape' | 'credit_card' | 'cash';
-  payment_proof_url?: string; // Para Yape/Plin
-  card_number?: string; // Para tarjeta
-  card_expiry?: string; // Para tarjeta
-  card_cvv?: string; // Para tarjeta
+  payment_proof_url?: string; // Opcional
 }
 
 export interface TimeSlot {
-  value: string;
+  value: string; // 'HH:mm': es lo que se envía al reservar
   label: string;
   available: boolean;
+  capacity_available?: number;
 }
 
 // Tipos de respuesta de la API

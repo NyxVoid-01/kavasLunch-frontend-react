@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPublicMenus, type DailyMenu } from '@/services/menus';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,7 @@ const FEATURES: { icon: LucideIcon; title: string; text: string; border: string;
 ];
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [menu, setMenu] = useState<DailyMenu | null>(null);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [menuError, setMenuError] = useState(false);
@@ -55,27 +54,16 @@ const Index = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!isLoading && user) {
-      // Redirigir según el rol del usuario
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/menus/user');
-      }
-    }
-  }, [user, isLoading, navigate]);
+  const signedIn = !!user;
 
   useEffect(() => {
-    fetchMenu();
-  }, [fetchMenu]);
+    // Quien ya tiene sesión se redirige y no necesita el menú
+    if (!signedIn) fetchMenu();
+  }, [signedIn, fetchMenu]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  // Con sesión, directo a su pantalla según el rol: sin esperas ni parpadeo del inicio
+  if (user) {
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/menus/user'} replace />;
   }
 
   const isToday = menu?.date === todayISO();

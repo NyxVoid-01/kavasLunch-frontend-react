@@ -8,6 +8,7 @@ import type { Reservation, TimeSlot } from '@/types';
 export interface CreateReservationData {
   menu_id: string;
   reservation_date: string;
+  pickup_time_slot?: string; // 'HH:mm'; si no se envía, el servidor asigna el siguiente libre
   payment_method: string;
 }
 
@@ -32,24 +33,20 @@ export const createReservation = async (data: CreateReservationData): Promise<Re
 };
 
 /**
- * Obtener slots horarios disponibles para una fecha y menú
+ * Turnos de recojo del día para un menú, incluidos los que no se pueden elegir (llenos o terminados)
  */
 export const getAvailableSlots = async (menuId: string, date: string): Promise<TimeSlot[]> => {
   const response = await api.get('/api/user/reservations/available-slots', {
-    params: { 
-      menu_id: menuId,
-      date 
-    }
+    params: { menu_id: menuId, date },
   });
-  
-  // El backend devuelve available_slots con estructura diferente
-  const backendSlots = response.data.data.available_slots || [];
-  
-  // Mapear la respuesta del backend al formato que espera el frontend
-  return backendSlots.map((slot: any) => ({
+
+  const slots: { time: string; available: boolean; capacity_available: number }[] = response.data.data.slots ?? [];
+
+  return slots.map((slot) => ({
     value: slot.time,
     label: slot.time,
-    available: slot.capacity_available > 0
+    available: slot.available,
+    capacity_available: slot.capacity_available,
   }));
 };
 
