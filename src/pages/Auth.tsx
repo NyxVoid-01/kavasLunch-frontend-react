@@ -9,24 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { UtensilsCrossed } from 'lucide-react';
-import Footer from '@/components/Footer';
+import AuthLayout from '@/components/AuthLayout';
 import PasswordInput from '@/components/PasswordInput';
+import { PasswordMatch, PasswordRequirements } from '@/components/PasswordRequirements';
+import { strongPasswordSchema, upchEmailSchema } from '@/lib/validation';
 
 const loginSchema = z.object({
-  email: z.string().email('Correo electrónico inválido').endsWith('@upch.pe', 'Debe usar su correo @upch.pe'),
+  email: upchEmailSchema,
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
 const signupSchema = z.object({
-  email: z.string().email('Correo electrónico inválido').endsWith('@upch.pe', 'Debe usar su correo @upch.pe'),
+  email: upchEmailSchema,
   fullName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  password: z.string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
-    .regex(/[a-z]/, 'Debe contener al menos una minúscula')
-    .regex(/[0-9]/, 'Debe contener al menos un número')
-    .regex(/[@$!%*?&]/, 'Debe contener al menos uno de estos caracteres especiales: @$!%*?&'),
+  password: strongPasswordSchema,
   passwordConfirmation: z.string(),
 }).refine((data) => data.password === data.passwordConfirmation, {
   message: "Las contraseñas no coinciden",
@@ -39,6 +35,8 @@ export default function Auth() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmation, setSignupConfirmation] = useState('');
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -158,18 +156,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <main className="w-full max-w-md mx-auto px-4 py-12 space-y-6 flex-grow flex flex-col justify-center">
-        <div className="text-center space-y-2">
-          <div className="flex justify-center mb-4">
-            <Link to="/" aria-label="Ir al inicio" className="flex bg-primary text-primary-foreground p-4 rounded-2xl">
-              <UtensilsCrossed className="w-12 h-12" />
-            </Link>
-          </div>
-          <h1 className="text-4xl font-bold text-primary">KAVAS-LUNCH</h1>
-          <p className="text-muted-foreground">Sistema de Reservas del Comedor Universitario UPCH</p>
-        </div>
-
+    <AuthLayout>
         <Card className="border-border/50 shadow-card">
           <CardHeader>
             <CardTitle>Acceso al Sistema</CardTitle>
@@ -198,7 +185,12 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Contraseña</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="login-password">Contraseña</Label>
+                      <Link to="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
                     <PasswordInput
                       id="login-password"
                       name="password"
@@ -251,10 +243,12 @@ export default function Auth() {
                       autoComplete="new-password"
                       required
                       disabled={loading}
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      aria-describedby="signup-password-rules"
+                      aria-invalid={!!errors.password}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 carácter especial (@$!%*?&)
-                    </p>
+                    <PasswordRequirements id="signup-password-rules" password={signupPassword} />
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
 
@@ -266,8 +260,14 @@ export default function Auth() {
                       autoComplete="new-password"
                       required
                       disabled={loading}
+                      value={signupConfirmation}
+                      onChange={(e) => setSignupConfirmation(e.target.value)}
+                      aria-invalid={!!errors.passwordConfirmation}
                     />
-                    {errors.passwordConfirmation && <p className="text-sm text-destructive">{errors.passwordConfirmation}</p>}
+                    <PasswordMatch password={signupPassword} confirmation={signupConfirmation} />
+                    {errors.passwordConfirmation && !signupConfirmation && (
+                      <p className="text-sm text-destructive">{errors.passwordConfirmation}</p>
+                    )}
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -278,8 +278,6 @@ export default function Auth() {
             </Tabs>
           </CardContent>
         </Card>
-      </main>
-      <Footer />
-    </div>
+    </AuthLayout>
   );
 }
