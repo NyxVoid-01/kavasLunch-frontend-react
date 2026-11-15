@@ -12,7 +12,8 @@ import { LOW_STOCK_THRESHOLD } from '@/components/menus/StockBadge';
 import MenuCard from '@/components/menus/MenuCard';
 import MenuDetailDialog from '@/components/menus/MenuDetailDialog';
 import MenuFilters, { type FilterOption } from '@/components/menus/MenuFilters';
-import { MENU_GRID_COLUMNS, MenuGridSkeleton, MenusEmpty, MenusError, MenusSummary } from '@/components/menus/MenusState';
+import { MenuGridSkeleton, MenusEmpty, MenusError, MenusSummary } from '@/components/menus/MenusState';
+import { CARD_GRID_COLUMNS } from '@/lib/layout';
 
 type StockFilter = 'all' | 'available' | 'low-stock';
 
@@ -101,7 +102,7 @@ export default function Menus() {
             ) : (
               <>
                 <MenusSummary count={menus.length} />
-                <div className={cn('grid gap-5', MENU_GRID_COLUMNS)}>
+                <div className={cn('grid gap-5', CARD_GRID_COLUMNS)}>
                   {menus.map((menu) => (
                     <MenuCard key={menu.id} menu={menu} onReserve={handleReserve} onDetail={setDetailMenu} />
                   ))}

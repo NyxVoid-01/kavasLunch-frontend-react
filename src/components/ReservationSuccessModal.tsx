@@ -1,8 +1,9 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertTriangle, Calendar, Check, Clock, CupSoda, Leaf, Mail, Receipt, UtensilsCrossed, X } from 'lucide-react';
-import type { Reservation } from '@/types';
+import type { UserReservation } from '@/types';
 import { parseLocalDate } from '@/lib/dates';
+import { PAYMENT_LABELS } from '@/lib/labels';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,16 +13,10 @@ interface ReservationSuccessModalProps {
   open: boolean;
   onClose: () => void;
   onViewReservations: () => void;
-  reservation: Reservation;
+  reservation: UserReservation;
   userEmail: string;
 }
 
-const PAYMENT_LABELS: Record<string, string> = {
-  yape: 'Yape / Plin',
-  plin: 'Yape / Plin',
-  credit_card: 'Tarjeta',
-  cash: 'Efectivo',
-};
 
 // Confirmación de la reserva: código de recojo, turno, menú, pago e indicaciones
 export default function ReservationSuccessModal({
@@ -31,7 +26,7 @@ export default function ReservationSuccessModal({
   reservation,
   userEmail,
 }: ReservationSuccessModalProps) {
-  const slot = reservation.pickup_time_slot || reservation.time_slot;
+  const slot = reservation.pickup_time_slot;
   const isPaid = reservation.payment_status === 'paid';
   const menu = reservation.menu;
 
@@ -69,7 +64,7 @@ export default function ReservationSuccessModal({
             </h3>
             <div className="inline-block min-w-[min(260px,100%)] rounded-2xl border-2 border-primary/30 bg-primary/10 px-5 py-3">
               <p className="text-3xl font-bold tracking-wider text-primary">
-                {reservation.code || reservation.id.substring(0, 8).toUpperCase()}
+                {reservation.code}
               </p>
             </div>
             <p className="text-sm text-muted-foreground mt-3">Presenta este código al recoger tu pedido</p>

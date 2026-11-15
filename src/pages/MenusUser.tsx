@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getUserMenus, MENUS_REFRESH_MS, type DailyMenu } from '@/services/menus';
 import { isInDateFilter, type MenuDateFilter } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PaginationBar from '@/components/PaginationBar';
 import MenuCard from '@/components/menus/MenuCard';
 import MenuDetailDialog from '@/components/menus/MenuDetailDialog';
 import MenuFilters, { type FilterOption } from '@/components/menus/MenuFilters';
 import RecommendedMenus, { RECOMMENDED_COUNT } from '@/components/menus/RecommendedMenus';
-import { MENU_GRID_COLUMNS, MenuGridSkeleton, MenusEmpty, MenusError, MenusSummary } from '@/components/menus/MenusState';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { MenuGridSkeleton, MenusEmpty, MenusError, MenusSummary } from '@/components/menus/MenusState';
+import { CARD_GRID_COLUMNS } from '@/lib/layout';
 
 // 12 llena filas completas con 2, 3 o 4 columnas de tarjetas
 const ITEMS_PER_PAGE = 12;
@@ -105,10 +104,6 @@ export default function MenusUser() {
 
   const handleReserve = (menu: DailyMenu) => navigate(`/reserve/${menu.id}`);
 
-  const goToPage = (next: number) => {
-    setCurrentPage(next);
-    window.scrollTo({ top: 0 });
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -149,34 +144,13 @@ export default function MenusUser() {
             ) : (
               <>
                 <MenusSummary count={menus.length} />
-                <div className={cn('grid gap-5 mb-6', MENU_GRID_COLUMNS)}>
+                <div className={cn('grid gap-5 mb-6', CARD_GRID_COLUMNS)}>
                   {paginatedMenus.map((menu) => (
                     <MenuCard key={menu.id} menu={menu} onReserve={handleReserve} onDetail={setDetailMenu} />
                   ))}
                 </div>
 
-                {/* Paginación */}
-                {totalPages > 1 && (
-                  <Card className="border-2">
-                    <div className="flex items-center justify-between gap-2 px-4 py-3">
-                      <Button variant="outline" className="border-2" onClick={() => goToPage(page - 1)} disabled={page === 1}>
-                        <ChevronLeft className="w-4 h-4 mr-2" />
-                        Anterior
-                      </Button>
-
-                      <div className="flex items-center gap-2" aria-live="polite">
-                        <span className="text-sm text-muted-foreground">Página</span>
-                        <span className="text-lg font-bold text-primary">{page}</span>
-                        <span className="text-sm text-muted-foreground">de {totalPages}</span>
-                      </div>
-
-                      <Button variant="outline" className="border-2" onClick={() => goToPage(page + 1)} disabled={page === totalPages}>
-                        Siguiente
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </Card>
-                )}
+                <PaginationBar page={page} totalPages={totalPages} onChange={setCurrentPage} />
               </>
             )}
           </section>

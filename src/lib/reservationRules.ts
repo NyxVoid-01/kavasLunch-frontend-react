@@ -32,3 +32,17 @@ export const getReservationAvailability = (
   }
   return { canReserve: true, label: 'Reservar Este Menú' };
 };
+
+// Misma regla que el backend (TimeSlotService::validateCancellation): una reserva pendiente
+// solo se cancela antes de las 10:00 del día de la reserva.
+export const CANCEL_DEADLINE_HOUR = 10;
+
+export const canCancelReservation = (
+  reservation: { status: string; reservation_date: string },
+  now: Date = new Date()
+): boolean => {
+  if (reservation.status !== 'pending') return false;
+  const deadline = parseLocalDate(reservation.reservation_date);
+  deadline.setHours(CANCEL_DEADLINE_HOUR, 0, 0, 0);
+  return now < deadline;
+};

@@ -154,3 +154,30 @@ export interface DashboardStats {
   total_revenue: string;
   pending_reservations: number;
 }
+
+export type ReservationStatus = 'pending' | 'delivered' | 'cancelled' | 'expired';
+export type PaymentMethodId = 'yape' | 'plin' | 'credit_card' | 'cash';
+
+// Reserva tal como la devuelve la API del usuario (/api/user/reservations)
+export interface UserReservation {
+  id: string;
+  code: string;
+  reservation_date: string; // 'YYYY-MM-DD'
+  pickup_time_slot: string | null; // 'HH:mm'
+  pickup_time_slot_full: string | null;
+  pickup_window_end: string | null; // 'HH:mm'
+  expired_at: string | null;
+  status: ReservationStatus;
+  payment_method: PaymentMethodId;
+  payment_status: 'pending' | 'paid' | 'failed';
+  qr_code_url: string | null;
+  delivered_at: string | null;
+  menu: {
+    id: string;
+    date: string;
+    price: string;
+    appetizer: string | null; // nombre del plato
+    main_dish: string | null;
+    drink: string | null;
+  };
+}

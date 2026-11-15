@@ -9,7 +9,7 @@ import { getReservationAvailability } from '@/lib/reservationRules';
 import { getUserMenuById, MENUS_REFRESH_MS } from '@/services/menus';
 import { createReservation, getAvailableSlots, getUserReservations } from '@/services/reservations';
 import { getPaymentMethods, processPayment } from '@/services/payments';
-import type { ProcessPaymentData, Reservation } from '@/types';
+import type { ProcessPaymentData, UserReservation } from '@/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ReservationSuccessModal from '@/components/ReservationSuccessModal';
@@ -25,7 +25,7 @@ export default function Reserve() {
   const queryClient = useQueryClient();
   const [slot, setSlot] = useState('');
   const [method, setMethod] = useState('');
-  const [created, setCreated] = useState<Reservation | null>(null);
+  const [created, setCreated] = useState<UserReservation | null>(null);
 
   // La ruta ya exige sesión (ProtectedRoute)
   const menuQuery = useQuery({

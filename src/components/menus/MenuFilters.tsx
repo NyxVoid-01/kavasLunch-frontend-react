@@ -12,7 +12,7 @@ const CHIP_CLASS =
   'h-9 rounded-full border-2 border-border bg-background px-3.5 text-sm font-medium hover:border-primary/50 hover:bg-primary/5 hover:text-foreground data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary';
 
 // Grupo de opciones excluyentes siempre visibles (control segmentado): una sola pulsación, sin abrir un desplegable
-function FilterGroup<T extends string>({
+export function FilterGroup<T extends string>({
   label,
   value,
   options,

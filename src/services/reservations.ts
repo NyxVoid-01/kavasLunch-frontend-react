@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { Reservation, TimeSlot } from '@/types';
+import type { TimeSlot, UserReservation } from '@/types';
 
 // ============================================
 // TIPOS PARA CREAR RESERVA
@@ -19,7 +19,7 @@ export interface CreateReservationData {
 /**
  * Obtener todas las reservas del usuario autenticado
  */
-export const getUserReservations = async (): Promise<Reservation[]> => {
+export const getUserReservations = async (): Promise<UserReservation[]> => {
   const response = await api.get('/api/user/reservations');
   return response.data.data.reservations;
 };
@@ -27,7 +27,7 @@ export const getUserReservations = async (): Promise<Reservation[]> => {
 /**
  * Crear una nueva reserva
  */
-export const createReservation = async (data: CreateReservationData): Promise<Reservation> => {
+export const createReservation = async (data: CreateReservationData): Promise<UserReservation> => {
   const response = await api.post('/api/user/reservations', data);
   return response.data.data.reservation;
 };
@@ -53,7 +53,7 @@ export const getAvailableSlots = async (menuId: string, date: string): Promise<T
 /**
  * Obtener detalle de una reserva específica
  */
-export const getReservationById = async (id: string): Promise<Reservation> => {
+export const getReservationById = async (id: string): Promise<UserReservation> => {
   const response = await api.get(`/api/user/reservations/${id}`);
   return response.data.data.reservation;
 };
