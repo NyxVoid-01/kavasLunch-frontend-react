@@ -1,17 +1,11 @@
 import { useId } from 'react';
 import { Filter } from 'lucide-react';
+import ChipGroup, { type ChipOption } from '@/components/ChipGroup';
 import { Card } from '@/components/ui/card';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-export interface FilterOption<T extends string> {
-  value: T;
-  label: string;
-}
+export type FilterOption<T extends string> = ChipOption<T>;
 
-const CHIP_CLASS =
-  'h-9 rounded-full border-2 border-border bg-background px-3.5 text-sm font-medium hover:border-primary/50 hover:bg-primary/5 hover:text-foreground data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary';
-
-// Grupo de opciones excluyentes siempre visibles (control segmentado): una sola pulsación, sin abrir un desplegable
+// Grupo de filtro con su título: opciones excluyentes siempre visibles
 export function FilterGroup<T extends string>({
   label,
   value,
@@ -30,20 +24,7 @@ export function FilterGroup<T extends string>({
       <p id={labelId} className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <ToggleGroup
-        type="single"
-        value={value}
-        // Radix permite deseleccionar; aquí siempre debe haber una opción elegida
-        onValueChange={(next) => next && onChange(next as T)}
-        aria-labelledby={labelId}
-        className="flex flex-wrap justify-start gap-2"
-      >
-        {options.map((option) => (
-          <ToggleGroupItem key={option.value} value={option.value} className={CHIP_CLASS}>
-            {option.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <ChipGroup value={value} options={options} onChange={onChange} ariaLabelledBy={labelId} />
     </div>
   );
 }

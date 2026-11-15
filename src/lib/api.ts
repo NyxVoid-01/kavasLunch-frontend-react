@@ -79,6 +79,16 @@ export const getErrorMessage = (error: unknown): string => {
   return 'Ha ocurrido un error inesperado';
 };
 
+// Errores de validación del backend por campo: { price: 'El precio debe ser mayor a 0.' }
+export const getFieldErrors = (error: unknown): Record<string, string> => {
+  const errors = axios.isAxiosError(error) ? (error.response?.data as ApiError | undefined)?.errors : undefined;
+  if (!errors) return {};
+
+  return Object.fromEntries(
+    Object.entries(errors).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : String(messages)])
+  );
+};
+
 // Helper para manejar respuestas de la API
 export const handleApiResponse = <T>(response: ApiResponse<T>): T => {
   if (!response.success) {

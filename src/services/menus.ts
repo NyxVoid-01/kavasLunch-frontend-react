@@ -23,12 +23,14 @@ export interface DailyMenu {
   is_available?: boolean;   // Campo adicional del backend
   created_at?: string;
   updated_at?: string;
-  appetizer: Dish;    // Siempre viene del backend (NO opcional)
-  main_dish: Dish;    // Siempre viene del backend (NO opcional)
-  drink: Dish;        // Siempre viene del backend (NO opcional)
-  appetizer_id?: string;
-  main_dish_id?: string;
-  drink_id?: string;
+  is_active?: boolean;
+  // Entrada y bebida son opcionales: un menú puede no tenerlas
+  appetizer: Dish | null;
+  main_dish: Dish | null;
+  drink: Dish | null;
+  appetizer_id?: string | null;
+  main_dish_id?: string | null;
+  drink_id?: string | null;
 }
 
 interface ApiResponse<T> {
