@@ -90,3 +90,10 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Fondo rayado para los platos sin foto */
+  .img-placeholder {
+    background: repeating-linear-gradient(45deg, hsl(var(--muted)) 0 12px, hsl(0 10% 92%) 12px 24px);
+  }
+}

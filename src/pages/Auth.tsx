@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { UtensilsCrossed } from 'lucide-react';
 import Footer from '@/components/Footer';
+import PasswordInput from '@/components/PasswordInput';
 
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido').endsWith('@upch.pe', 'Debe usar su correo @upch.pe'),
@@ -157,13 +158,13 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <div className="w-full max-w-md space-y-6 flex-grow flex items-center justify-center flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <main className="w-full max-w-md mx-auto px-4 py-12 space-y-6 flex-grow flex flex-col justify-center">
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary text-primary-foreground p-4 rounded-2xl">
+            <Link to="/" aria-label="Ir al inicio" className="flex bg-primary text-primary-foreground p-4 rounded-2xl">
               <UtensilsCrossed className="w-12 h-12" />
-            </div>
+            </Link>
           </div>
           <h1 className="text-4xl font-bold text-primary">KAVAS-LUNCH</h1>
           <p className="text-muted-foreground">Sistema de Reservas del Comedor Universitario UPCH</p>
@@ -198,10 +199,10 @@ export default function Auth() {
 
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Contraseña</Label>
-                    <Input
+                    <PasswordInput
                       id="login-password"
                       name="password"
-                      type="password"
+                      autoComplete="current-password"
                       required
                       disabled={loading}
                     />
@@ -244,10 +245,10 @@ export default function Auth() {
 
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Contraseña</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-password"
                       name="password"
-                      type="password"
+                      autoComplete="new-password"
                       required
                       disabled={loading}
                     />
@@ -259,10 +260,10 @@ export default function Auth() {
 
                   <div className="space-y-2">
                     <Label htmlFor="signup-password-confirmation">Confirmar Contraseña</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-password-confirmation"
                       name="passwordConfirmation"
-                      type="password"
+                      autoComplete="new-password"
                       required
                       disabled={loading}
                     />
@@ -277,7 +278,7 @@ export default function Auth() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+      </main>
       <Footer />
     </div>
   );
