@@ -37,6 +37,9 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// Las pantallas de menús refrescan el stock cada 30 s y al volver a la pestaña (RF-004)
+export const MENUS_REFRESH_MS = 30_000;
+
 // ==================== ENDPOINTS PÚBLICOS (SIN AUTH) ====================
 
 /**
