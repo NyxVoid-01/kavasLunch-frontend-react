@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 import type { DailyMenu, Dish } from '@/services/menus';
-import type { Reservation } from '@/types';
+import type { PaymentMethodId, ReservationStatus } from '@/types';
 
 // ============================================
 // TIPOS PARA ADMIN
@@ -117,63 +117,103 @@ export const getStockAudits = async (menuId: string): Promise<StockAudit[]> => {
 };
 
 // ============================================
-// RESERVATIONS - Admin Management
+// RESERVAS: despacho (RF-012 y RF-013)
 // ============================================
 
-export const getAllReservations = async (): Promise<Reservation[]> => {
-  const response = await api.get('/api/admin/reservations');
-  const result = response.data.data?.reservations || response.data.data || response.data || [];
-  return Array.isArray(result) ? result : [];
-};
+// Reserva tal como la usa el panel: usuario, turno, pago y nombres de los platos
+export interface AdminReservation {
+  id: string;
+  code: string;
+  status: ReservationStatus;
+  reservation_date: string; // 'YYYY-MM-DD'
+  pickup_time_slot: string | null; // 'HH:mm'
+  pickup_window_end: string | null;
+  payment_method: PaymentMethodId;
+  payment_status: 'pending' | 'paid' | 'failed';
+  created_at: string | null;
+  delivered_at: string | null;
+  user: { id: string; full_name: string; email: string };
+  menu: { id: string; price: string; appetizer: string | null; main_dish: string | null; drink: string | null };
+}
 
-export const getTodayReservations = async (): Promise<Reservation[]> => {
-  const response = await api.get('/api/admin/reservations/today');
-  return response.data.data?.reservations || response.data.data || response.data || [];
-};
+export interface ReservationsSummary {
+  total: number;
+  pending: number;
+  delivered: number;
+  cancelled: number;
+  expired: number;
+}
 
-export const getReservationsByTimeslot = async (date?: string): Promise<any> => {
-  const params = date ? { date } : {};
-  const response = await api.get('/api/admin/reservations/by-timeslot', { params });
+export interface DayReservations {
+  date: string;
+  reservations: AdminReservation[];
+  // Cuenta todo el día, aunque la lista venga filtrada
+  summary: ReservationsSummary;
+}
+
+// Reservas de un día (por defecto, hoy), con el resumen por estado
+export const getReservationsOfDay = async (date?: string): Promise<DayReservations> => {
+  const response = await api.get('/api/admin/reservations', { params: date ? { date } : {} });
   return response.data.data;
-};
-
-export const getAdminReservationById = async (id: string): Promise<Reservation> => {
-  const response = await api.get(`/api/admin/reservations/${id}`);
-  return response.data.data.reservation;
 };
 
 export const cancelReservationAdmin = async (id: string): Promise<void> => {
   await api.put(`/api/admin/reservations/${id}/cancel`);
 };
 
-export const deliverReservation = async (id: string): Promise<Reservation> => {
+// Marca una reserva como entregada (no se puede entregar dos veces)
+export const deliverReservation = async (id: string): Promise<AdminReservation> => {
   const response = await api.put(`/api/admin/reservations/${id}/deliver`);
-  return response.data.data?.reservation || response.data.data || response.data;
+  return response.data.data.reservation;
 };
 
-export const scanQRCode = async (code: string): Promise<any> => {
+// Entrega por el código de la reserva (se escribe a mano o se lee del QR)
+export const deliverByCode = async (code: string): Promise<AdminReservation> => {
   const response = await api.post('/api/admin/reservations/scan-qr', { code });
-  return response.data.data;
+  return response.data.data.reservation;
 };
 
 // ============================================
-// REPORTS
+// REPORTES
 // ============================================
 
-export const getReservationsReport = async (dateFrom?: string, dateTo?: string): Promise<any> => {
-  const params: any = {};
-  if (dateFrom) params.date_from = dateFrom;
-  if (dateTo) params.date_to = dateTo;
+export type SalesGroup = 'day' | 'week' | 'month';
 
-  const response = await api.get('/api/admin/reports/reservations', { params });
+export interface SalesPoint {
+  // día: 'YYYY-MM-DD' · semana: 'YYYY-MM-DD' del lunes · mes: 'YYYY-MM'
+  period: string;
+  total_reservations: number;
+  total_revenue: number;
+}
+
+export interface SalesReport {
+  group_by: SalesGroup;
+  sales: SalesPoint[];
+  total_revenue: number;
+  total_reservations: number;
+}
+
+export interface ReservationsReport {
+  summary: {
+    total_reservations: number;
+    // Las canceladas y vencidas no generan ingreso
+    counted_reservations: number;
+    total_revenue: number;
+    average_reservation_value: number;
+  };
+  status_breakdown: Omit<ReservationsSummary, 'total'>;
+  payment_methods: Record<PaymentMethodId, number>;
+  reservations: AdminReservation[];
+}
+
+export const getSalesReport = async (dateFrom: string, dateTo: string, groupBy: SalesGroup): Promise<SalesReport> => {
+  const response = await api.get('/api/admin/reports/sales', {
+    params: { date_from: dateFrom, date_to: dateTo, group_by: groupBy },
+  });
   return response.data.data;
 };
 
-export const getSalesReport = async (dateFrom?: string, dateTo?: string): Promise<any> => {
-  const params: any = {};
-  if (dateFrom) params.date_from = dateFrom;
-  if (dateTo) params.date_to = dateTo;
-
-  const response = await api.get('/api/admin/reports/sales', { params });
+export const getReservationsReport = async (dateFrom: string, dateTo: string): Promise<ReservationsReport> => {
+  const response = await api.get('/api/admin/reports/reservations', { params: { date_from: dateFrom, date_to: dateTo } });
   return response.data.data;
 };
