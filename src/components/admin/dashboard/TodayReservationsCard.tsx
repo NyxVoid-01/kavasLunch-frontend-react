@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Clock, Package } from 'lucide-react';
 import type { AdminReservation } from '@/services/admin';
 import { slotLabel } from '@/lib/labels';
 import { cn } from '@/lib/utils';
+import PaginationBar from '@/components/PaginationBar';
 import ReservationStatusBadge from '@/components/ReservationStatusBadge';
 import { EmptyState } from '@/components/StateMessages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +12,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 // Medidas compartidas entre la lista y su esqueleto
 const ROW_CLASS = 'flex items-center justify-between gap-3 border-b py-3 last:border-0';
 const SKELETON_ROWS = 4;
+const ROWS_PER_PAGE = 10;
 
 // Reservas del día en el panel (lectura rápida; la gestión está en Despacho)
 export default function TodayReservationsCard({ reservations }: { reservations: AdminReservation[] }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(reservations.length / ROWS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const visible = reservations.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader className="pb-1">
         <CardTitle className="text-lg">Reservas de Hoy</CardTitle>
@@ -23,7 +32,7 @@ export default function TodayReservationsCard({ reservations }: { reservations: 
           <EmptyState compact icon={Package} title="Aún no hay reservas para hoy" description="Cuando los usuarios reserven, aparecerán aquí." />
         ) : (
           <ul>
-            {reservations.map((reservation) => {
+            {visible.map((reservation) => {
               const inactive = reservation.status === 'cancelled' || reservation.status === 'expired';
               return (
                 <li key={reservation.id} className={cn(ROW_CLASS, inactive && 'opacity-60')}>
@@ -47,6 +56,8 @@ export default function TodayReservationsCard({ reservations }: { reservations: 
         )}
       </CardContent>
     </Card>
+    <PaginationBar page={page} totalPages={totalPages} onChange={setCurrentPage} />
+    </div>
   );
 }
 

@@ -9,11 +9,15 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LOW_STOCK_THRESHOLD } from '@/components/menus/StockBadge';
+import PaginationBar from '@/components/PaginationBar';
 import MenuCard from '@/components/menus/MenuCard';
 import MenuDetailDialog from '@/components/menus/MenuDetailDialog';
 import MenuFilters, { type FilterOption } from '@/components/menus/MenuFilters';
 import { MenuGridSkeleton, MenusEmpty, MenusError, MenusSummary } from '@/components/menus/MenusState';
 import { CARD_GRID_COLUMNS } from '@/lib/layout';
+
+// 12 llena filas completas con 2, 3 o 4 columnas de tarjetas
+const ITEMS_PER_PAGE = 12;
 
 type StockFilter = 'all' | 'available' | 'low-stock';
 
@@ -35,6 +39,7 @@ export default function Menus() {
   const navigate = useNavigate();
   const [dateFilter, setDateFilter] = useState<MenuDateFilter>('today-tomorrow');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [detailMenu, setDetailMenu] = useState<DailyMenu | null>(null);
 
   // Página pública: no requiere sesión; se pide al intentar reservar
@@ -56,7 +61,21 @@ export default function Menus() {
     [allMenus, dateFilter, stockFilter]
   );
 
+  const totalPages = Math.max(1, Math.ceil(menus.length / ITEMS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const paginatedMenus = menus.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  const changeDate = (value: MenuDateFilter) => {
+    setDateFilter(value);
+    setCurrentPage(1);
+  };
+  const changeStock = (value: StockFilter) => {
+    setStockFilter(value);
+    setCurrentPage(1);
+  };
+
   const showAll = () => {
+    setCurrentPage(1);
     setDateFilter('all');
     setStockFilter('all');
   };
@@ -85,10 +104,10 @@ export default function Menus() {
             <MenuFilters
               date={dateFilter}
               dateOptions={DATE_OPTIONS}
-              onDateChange={(value) => setDateFilter(value)}
+              onDateChange={changeDate}
               stock={stockFilter}
               stockOptions={STOCK_OPTIONS}
-              onStockChange={(value) => setStockFilter(value)}
+              onStockChange={changeStock}
             />
           </aside>
 
@@ -102,11 +121,13 @@ export default function Menus() {
             ) : (
               <>
                 <MenusSummary count={menus.length} />
-                <div className={cn('grid gap-5', CARD_GRID_COLUMNS)}>
-                  {menus.map((menu) => (
+                <div className={cn('grid gap-5 mb-6', CARD_GRID_COLUMNS)}>
+                  {paginatedMenus.map((menu) => (
                     <MenuCard key={menu.id} menu={menu} onReserve={handleReserve} onDetail={setDetailMenu} />
                   ))}
                 </div>
+
+                <PaginationBar page={page} totalPages={totalPages} onChange={setCurrentPage} />
               </>
             )}
           </section>
