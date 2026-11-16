@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createMenu, updateMenu, type DishCategory, type MenuPayload } from '@/services/admin';
 import type { DailyMenu, Dish } from '@/services/menus';
 import { getErrorMessage, getFieldErrors } from '@/lib/api';
-import { todayISO } from '@/lib/dates';
+import { parseLocalDate, todayISO } from '@/lib/dates';
 import { zodFieldErrors } from '@/lib/validation';
 import MenuCard from '@/components/menus/MenuCard';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,9 @@ const buildSchema = (editing: boolean) =>
     date: z
       .string()
       .min(1, 'Selecciona una fecha')
-      .refine((date) => editing || date >= todayISO(), 'La fecha no puede ser anterior a hoy'),
+      .refine((date) => editing || date >= todayISO(), 'La fecha no puede ser anterior a hoy')
+      // Los menús son solo de lunes a viernes
+      .refine((date) => editing || ![0, 6].includes(parseLocalDate(date).getDay()), 'Los menús son solo de lunes a viernes'),
     appetizer_id: z.string(),
     main_dish_id: z.string().min(1, 'Selecciona el plato principal'),
     drink_id: z.string(),
@@ -208,6 +210,7 @@ export default function MenuFormDialog({ menu, menus, dishes, onClose }: MenuFor
                 disabled={editing}
                 onChange={(e) => set('date', e.target.value)}
               />
+              {!editing && <p className="text-xs text-muted-foreground">Solo de lunes a viernes</p>}
               {!editing && sameDayCount > 0 && (
                 <p className="flex items-center gap-1.5 text-xs text-[#92400E]">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />

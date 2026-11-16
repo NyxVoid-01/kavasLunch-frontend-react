@@ -1,8 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UtensilsCrossed, LogOut, User, ShieldCheck, History, Home, UserCircle } from 'lucide-react';
+import { LogOut, User, ShieldCheck, History, Home, UserCircle } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import UpchLogo from '@/components/UpchLogo';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -15,9 +16,7 @@ export default function Header() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Logo and Brand */}
           <Link to={user ? '/menus/user' : '/menus'} className="group flex items-center gap-3">
-            <span className="flex bg-accent text-primary p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
-              <UtensilsCrossed className="w-7 h-7" />
-            </span>
+            <UpchLogo className="h-12 drop-shadow-md group-hover:scale-105 transition-transform" />
             <span>
               <span className="block text-2xl font-bold text-accent tracking-tight">KAVAS-LUNCH</span>
               <span className="block text-xs text-primary-foreground/90 font-medium">Comedor Universitario UPCH</span>

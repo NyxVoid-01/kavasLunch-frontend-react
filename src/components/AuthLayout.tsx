@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { UtensilsCrossed } from 'lucide-react';
+import UpchLogo from '@/components/UpchLogo';
 import Footer from '@/components/Footer';
 
 // Marco común de las pantallas de acceso: logo, título, contenido centrado y pie
@@ -10,8 +10,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <main className="w-full max-w-md mx-auto px-4 py-12 space-y-6 flex-grow flex flex-col justify-center">
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <Link to="/" aria-label="Ir al inicio" className="flex bg-primary text-primary-foreground p-4 rounded-2xl">
-              <UtensilsCrossed className="w-12 h-12" />
+            <Link to="/" aria-label="Ir al inicio" className="flex">
+              <UpchLogo className="h-24" />
             </Link>
           </div>
           <h1 className="text-4xl font-bold text-primary">KAVAS-LUNCH</h1>

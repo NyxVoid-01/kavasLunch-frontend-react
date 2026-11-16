@@ -3,7 +3,8 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPublicMenus, type DailyMenu } from '@/services/menus';
 import { Button } from '@/components/ui/button';
-import { UtensilsCrossed, Calendar, Clock, ShieldCheck, Sparkles, type LucideIcon } from 'lucide-react';
+import { Calendar, Clock, ShieldCheck, Sparkles, type LucideIcon } from 'lucide-react';
+import UpchLogo from '@/components/UpchLogo';
 import Footer from '@/components/Footer';
 import TodayMenuCard, { TodayMenuCardMessage, TodayMenuCardSkeleton } from '@/components/menus/TodayMenuCard';
 import { todayISO } from '@/lib/dates';
@@ -77,9 +78,7 @@ const Index = () => {
           <div className="space-y-5 text-center lg:text-left">
             {/* Logo */}
             <div className="flex justify-center lg:justify-start">
-              <span className="inline-flex bg-gradient-to-br from-primary via-primary to-accent p-5 rounded-3xl text-accent shadow-2xl shadow-primary/20">
-                <UtensilsCrossed className="w-16 h-16" />
-              </span>
+              <UpchLogo className="h-28 drop-shadow-xl" />
             </div>
 
             {/* Heading */}
