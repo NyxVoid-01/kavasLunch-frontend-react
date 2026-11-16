@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaginationBar from '@/components/PaginationBar';
+import DayBanner from '@/components/menus/DayBanner';
 import MenuCard from '@/components/menus/MenuCard';
 import MenuDetailDialog from '@/components/menus/MenuDetailDialog';
 import MenuFilters, { type FilterOption } from '@/components/menus/MenuFilters';
@@ -116,6 +117,8 @@ export default function MenusUser() {
           </h1>
           <p className="text-muted-foreground">Reserva tu almuerzo con anticipación y ahorra tiempo</p>
         </div>
+
+        <DayBanner />
 
         <div className="grid gap-6 items-start lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
           {/* Panel lateral: filtros y recomendados. Fijo al desplazarse en pantallas anchas */}

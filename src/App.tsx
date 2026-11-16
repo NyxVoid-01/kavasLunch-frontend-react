@@ -16,6 +16,7 @@ import Reservations from "./pages/Reservations";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/privacidad" element={<Privacy />} />
             <Route path="/menus" element={<Menus />} />
             <Route 
               path="/menus/user" 

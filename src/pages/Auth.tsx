@@ -73,7 +73,7 @@ export default function Auth() {
           navigate('/menus/user');
         }
       }, 100);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
         error.errors.forEach((err) => {
@@ -134,7 +134,7 @@ export default function Auth() {
           navigate('/menus/user');
         }
       }, 100);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
         error.errors.forEach((err) => {
