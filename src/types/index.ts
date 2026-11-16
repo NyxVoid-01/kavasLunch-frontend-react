@@ -102,8 +102,21 @@ export interface PaymentMethod {
 // La pasarela es simulada: no se capturan datos de tarjeta ni se exige comprobante
 export interface ProcessPaymentData {
   reservation_id: string;
-  payment_method: 'yape' | 'credit_card' | 'cash';
+  payment_method: PaymentMethodId;
   payment_proof_url?: string; // Opcional
+}
+
+// Solicitud de pago de Yape/Plin o tarjeta (RF-014): se acepta solo dentro de los 3 minutos siguientes
+export interface PaymentRequest {
+  id: string;
+  reservation_id: string;
+  method: Exclude<PaymentMethodId, 'cash'>;
+  amount: string;
+  transaction_code: string;
+  expires_at: string;
+  expires_in_seconds: number;
+  window_minutes: number;
+  phone: string | null;
 }
 
 export interface TimeSlot {

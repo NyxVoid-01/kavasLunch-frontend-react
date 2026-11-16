@@ -8,12 +8,13 @@ import { getErrorMessage } from '@/lib/api';
 import { getReservationAvailability } from '@/lib/reservationRules';
 import { getUserMenuById, MENUS_REFRESH_MS } from '@/services/menus';
 import { createReservation, getAvailableSlots, getUserReservations } from '@/services/reservations';
-import { getPaymentMethods, processPayment } from '@/services/payments';
-import type { ProcessPaymentData, UserReservation } from '@/types';
+import { getPaymentMethods, processPayment, requestPayment } from '@/services/payments';
+import type { PaymentMethodId, PaymentRequest, UserReservation } from '@/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ReservationSuccessModal from '@/components/ReservationSuccessModal';
 import MenuSummaryCard, { MenuSummaryCardSkeleton } from '@/components/reserve/MenuSummaryCard';
+import PaymentDialog, { type PaymentResult } from '@/components/reserve/PaymentDialog';
 import ReserveFormCard, { ReserveFormCardSkeleton } from '@/components/reserve/ReserveFormCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ export default function Reserve() {
   const [slot, setSlot] = useState('');
   const [method, setMethod] = useState('');
   const [created, setCreated] = useState<UserReservation | null>(null);
+  // Yape/Plin o tarjeta: reserva creada esperando que el pago se confirme dentro de 3 minutos
+  const [paying, setPaying] = useState<{ reservation: UserReservation; request: PaymentRequest } | null>(null);
 
   // La ruta ya exige sesión (ProtectedRoute)
   const menuQuery = useQuery({
@@ -99,27 +102,32 @@ export default function Reserve() {
 
       // La reserva ya existe: si el pago falla, no se pierde; queda pendiente de cobro
       try {
-        const result = await processPayment({
-          reservation_id: reservation.id,
-          payment_method: method as ProcessPaymentData['payment_method'],
-        });
-        return { reservation: { ...reservation, payment_status: result.reservation.payment_status }, paymentFailed: false };
+        if (method === 'cash') {
+          const result = await processPayment({ reservation_id: reservation.id, payment_method: 'cash' });
+          return { reservation: { ...reservation, payment_status: result.reservation.payment_status }, paymentFailed: false };
+        }
+        // Yape/Plin o tarjeta: se genera la solicitud de pago y se confirma en la ventana de pago
+        const request = await requestPayment(reservation.id, method as PaymentRequest['method']);
+        return { reservation, request, paymentFailed: false };
       } catch (error) {
         console.error('Error processing payment:', error);
         return { reservation, paymentFailed: true };
       }
     },
-    onSuccess: ({ reservation, paymentFailed }) => {
-      setCreated(reservation);
+    onSuccess: ({ reservation, request, paymentFailed }) => {
       // El stock y los turnos cambiaron
       ['menus', 'slots', 'reservations'].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
 
+      if (request) {
+        setPaying({ reservation, request });
+        return;
+      }
+
+      setCreated(reservation);
       if (paymentFailed) {
         toast.warning('Reserva creada: el pago quedó pendiente', { description: 'Podrás pagar en caja al recoger tu pedido' });
-      } else if (method === 'cash') {
-        toast.success('¡Reserva creada!', { description: 'Pagarás al recoger tu pedido' });
       } else {
-        toast.success('¡Todo listo!', { description: 'Pago registrado' });
+        toast.success('¡Reserva creada!', { description: 'Pagarás al recoger tu pedido' });
       }
     },
     onError: (error) => {
@@ -128,6 +136,24 @@ export default function Reserve() {
       toast.error(getErrorMessage(error));
     },
   });
+
+  // Resultado de la ventana de pago: pagado, o pendiente para pagar en caja
+  const finishPayment = ({ paid, method: finalMethod }: PaymentResult) => {
+    if (!paying) return;
+    setCreated({
+      ...paying.reservation,
+      payment_status: paid ? 'paid' : 'pending',
+      payment_method: finalMethod as PaymentMethodId,
+    });
+    setPaying(null);
+    queryClient.invalidateQueries({ queryKey: ['reservations'] });
+
+    if (paid) {
+      toast.success('¡Pago confirmado!', { description: 'Te enviamos la confirmación de pago por correo' });
+    } else {
+      toast.info('Reserva creada', { description: 'Pagarás en caja al recoger tu pedido' });
+    }
+  };
 
   const goToReservations = () => navigate('/reservations');
 
@@ -196,6 +222,8 @@ export default function Reserve() {
           </div>
         </div>
       </main>
+
+      {paying && <PaymentDialog request={paying.request} onDone={finishPayment} />}
 
       {created && (
         <ReservationSuccessModal
