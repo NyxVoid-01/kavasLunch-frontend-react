@@ -16,8 +16,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // La sesión guardada se usa de inmediato (las pantallas muestran sus esqueletos mientras cargan sus datos)
+  // y se valida con el servidor en segundo plano. Sin sesión guardada no hay nada que esperar.
+  const [user, setUser] = useState<User | null>(() => authService.getCurrentUser());
+  const [isLoading, setIsLoading] = useState(() => authService.isAuthenticated());
   const navigate = useNavigate();
 
   // Cargar usuario al iniciar

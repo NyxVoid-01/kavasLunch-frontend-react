@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import PageSkeleton from '@/components/PageSkeleton';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,18 +10,9 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!user) {
+    // Hay un token pero aún no se pudo leer al usuario: esqueleto en lugar de un spinner
+    if (isLoading) return <PageSkeleton />;
     return <Navigate to="/auth" replace />;
   }
 

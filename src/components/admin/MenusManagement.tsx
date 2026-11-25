@@ -1,351 +1,194 @@
-import { useEffect, useState } from 'react';
-import { getAllDishes, getAllMenus, createMenu, deleteMenu, updateMenu, updateMenuStock } from '@/services/admin';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Save, Trash2, Edit, Minus, PlusIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AlertTriangle, CalendarDays, Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import { deleteMenu, getAllDishes, getAllMenus, updateMenuStock } from '@/services/admin';
+import type { DailyMenu } from '@/services/menus';
+import { getErrorMessage } from '@/lib/api';
+import { parseLocalDate, todayISO } from '@/lib/dates';
+import { CARD_GRID_COLUMNS } from '@/lib/layout';
+import { cn } from '@/lib/utils';
+import AdminToolbar from '@/components/admin/AdminToolbar';
+import AdminMenuCard, { AdminMenuGridSkeleton } from '@/components/admin/menus/AdminMenuCard';
+import MenuFormDialog from '@/components/admin/menus/MenuFormDialog';
+import StockDialog from '@/components/admin/menus/StockDialog';
+import ChipGroup, { type ChipOption } from '@/components/ChipGroup';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import PaginationBar from '@/components/PaginationBar';
+import ResultsSummary from '@/components/ResultsSummary';
+import { EmptyState, ErrorState } from '@/components/StateMessages';
+import { LOW_STOCK_THRESHOLD } from '@/components/menus/StockBadge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
-interface Dish {
-  id: string;
-  name: string;
-  category: string;
-}
+const ITEMS_PER_PAGE = 12;
 
+type RangeFilter = 'upcoming' | 'past' | 'all';
+
+const RANGE_OPTIONS: ChipOption<RangeFilter>[] = [
+  { value: 'upcoming', label: 'Próximos' },
+  { value: 'past', label: 'Pasados' },
+  { value: 'all', label: 'Todos' },
+];
+
+// Gestión de menús diarios (RF-010 y RF-011): publicar, editar, eliminar y controlar el stock
 export default function MenusManagement() {
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [menus, setMenus] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingMenu, setEditingMenu] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    date: '',
-    appetizer_id: '',
-    main_dish_id: '',
-    drink_id: '',
-    price: 0,
-    stock: 30,
+  const queryClient = useQueryClient();
+  const [range, setRange] = useState<RangeFilter>('upcoming');
+  const [currentPage, setCurrentPage] = useState(1);
+  // undefined: cerrado · null: menú nuevo · DailyMenu: edición
+  const [editing, setEditing] = useState<DailyMenu | null | undefined>(undefined);
+  const [deleting, setDeleting] = useState<DailyMenu | null>(null);
+  const [stockMenuId, setStockMenuId] = useState<string | null>(null);
+
+  const menusQuery = useQuery({ queryKey: ['admin', 'menus'], queryFn: getAllMenus });
+  const dishesQuery = useQuery({ queryKey: ['admin', 'dishes'], queryFn: getAllDishes });
+  const menus = useMemo(() => menusQuery.data ?? [], [menusQuery.data]);
+  const today = todayISO();
+
+  const filtered = useMemo(() => {
+    const upcoming = menus.filter((m) => m.date >= today).sort((a, b) => a.date.localeCompare(b.date) || Number(a.price) - Number(b.price));
+    const past = menus.filter((m) => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
+    return range === 'upcoming' ? upcoming : range === 'past' ? past : [...upcoming, ...past];
+  }, [menus, range, today]);
+
+  // Alerta de stock bajo (RF-011): menús próximos con pocas unidades o agotados
+  const lowStock = useMemo(() => menus.filter((m) => m.date >= today && m.stock <= LOW_STOCK_THRESHOLD), [menus, today]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const visible = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const stockMenu = menus.find((m) => m.id === stockMenuId) ?? null;
+
+  const refresh = () => {
+    ['admin', 'menus'].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+  };
+
+  const step = useMutation({
+    mutationFn: ({ menu, delta }: { menu: DailyMenu; delta: number }) =>
+      updateMenuStock(menu.id, menu.stock + delta, 'Ajuste rápido (±1)'),
+    onSuccess: refresh,
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [dishesData, menusData] = await Promise.all([
-        getAllDishes(),
-        getAllMenus()
-      ]);
-
-      // Filter only active dishes
-      const activeDishes = dishesData.filter(d => d.is_active).map(d => ({
-        id: d.id,
-        name: d.name,
-        category: d.category
-      }));
-
-      setDishes(activeDishes);
-      setMenus(menusData);
-    } catch (error: any) {
-      console.error('Error fetching data:', error);
-      toast.error('Error al cargar datos');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      if (!formData.main_dish_id || formData.price <= 0) {
-        toast.error('Por favor completa los campos requeridos');
-        return;
-      }
-
-      if (editingMenu) {
-        // Editar menú existente
-        const cleanedData = {
-          price: formData.price,
-          stock: formData.stock,
-          ...(formData.appetizer_id && { appetizer_id: formData.appetizer_id }),
-          main_dish_id: formData.main_dish_id,
-          ...(formData.drink_id && { drink_id: formData.drink_id }),
-        };
-
-        await updateMenu(editingMenu.id, cleanedData);
-        toast.success('Menú actualizado correctamente');
-      } else {
-        // Crear nuevo menú
-        if (!formData.date) {
-          toast.error('Por favor selecciona una fecha');
-          return;
-        }
-
-        // Verificar si ya existe un menú para esta fecha
-        const existingMenu = menus.find(menu => menu.date === formData.date);
-        if (existingMenu) {
-          toast.error('Ya existe un menú para esta fecha. Por favor selecciona otra fecha.');
-          return;
-        }
-
-        const cleanedData = {
-          date: formData.date,
-          main_dish_id: formData.main_dish_id,
-          price: formData.price,
-          stock: formData.stock,
-          ...(formData.appetizer_id && { appetizer_id: formData.appetizer_id }),
-          ...(formData.drink_id && { drink_id: formData.drink_id }),
-        };
-
-        await createMenu(cleanedData);
-        toast.success('Menú creado correctamente');
-      }
-      
-      setIsDialogOpen(false);
-      resetForm();
-      fetchData();
-    } catch (error: any) {
-      console.error('Error saving menu:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          'Error al guardar menú';
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este menú?')) return;
-
-    try {
-      await deleteMenu(id);
-      toast.success('Menú eliminado correctamente');
-      fetchData();
-    } catch (error: any) {
-      console.error('Error deleting menu:', error);
-      toast.error(error.response?.data?.message || 'Error al eliminar menú');
-    }
-  };
-
-  const resetForm = () => {
-    setEditingMenu(null);
-    setFormData({
-      date: '',
-      appetizer_id: '',
-      main_dish_id: '',
-      drink_id: '',
-      price: 0,
-      stock: 30,
-    });
-  };
-
-  const handleEdit = (menu: any) => {
-    setEditingMenu(menu);
-    setFormData({
-      date: menu.date,
-      appetizer_id: menu.appetizer?.id || '',
-      main_dish_id: menu.main_dish?.id || '',
-      drink_id: menu.drink?.id || '',
-      price: typeof menu.price === 'string' ? parseFloat(menu.price) : menu.price,
-      stock: menu.stock,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleStockUpdate = async (menuId: string, currentStock: number, increment: number) => {
-    const newStock = currentStock + increment;
-    
-    if (newStock < 0) {
-      toast.error('El stock no puede ser negativo');
-      return;
-    }
-
-    try {
-      const reason = increment > 0 
-        ? `Incremento de stock: +${increment}` 
-        : `Decremento de stock: ${increment}`;
-      await updateMenuStock(menuId, newStock, reason);
-      toast.success('Stock actualizado');
-      fetchData();
-    } catch (error: any) {
-      console.error('Error updating stock:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Error al actualizar stock';
-      toast.error(errorMessage);
-    }
-  };
-
-  const getDishesByCategory = (category: string) => dishes.filter(d => d.category === category);
-
-  if (loading) {
-    return <div className="text-center py-8">Cargando menús...</div>;
-  }
+  const remove = useMutation({
+    mutationFn: (menu: DailyMenu) => deleteMenu(menu.id),
+    onSuccess: () => {
+      toast.success('Menú eliminado');
+      setDeleting(null);
+      refresh();
+    },
+    onError: (error) => {
+      // Si ya tiene reservas, el backend lo explica y se sugiere dejar el stock en 0
+      toast.error(getErrorMessage(error), { description: 'Puedes poner su stock en 0 para que no se pueda reservar.' });
+      setDeleting(null);
+    },
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gestión de Menús Diarios</h2>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Menú
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingMenu ? 'Editar Menú' : 'Crear Menú Diario'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Fecha *</Label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  disabled={!!editingMenu}
-                />
-                {formData.date && !editingMenu && menus.find(m => m.date === formData.date) && (
-                  <p className="text-xs text-red-500 mt-1">⚠️ Ya existe un menú para esta fecha</p>
-                )}
-              </div>
-
-              <div>
-                <Label>Entrada</Label>
-                <Select value={formData.appetizer_id || "none"} onValueChange={(value) => setFormData({ ...formData, appetizer_id: value === "none" ? "" : value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ninguna</SelectItem>
-                    {getDishesByCategory('appetizer').map(dish => (
-                      <SelectItem key={dish.id} value={dish.id}>{dish.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Plato Principal *</Label>
-                <Select value={formData.main_dish_id} onValueChange={(value) => setFormData({ ...formData, main_dish_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getDishesByCategory('main').map(dish => (
-                      <SelectItem key={dish.id} value={dish.id}>{dish.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Bebida</Label>
-                <Select value={formData.drink_id || "none"} onValueChange={(value) => setFormData({ ...formData, drink_id: value === "none" ? "" : value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ninguna</SelectItem>
-                    {getDishesByCategory('drink').map(dish => (
-                      <SelectItem key={dish.id} value={dish.id}>{dish.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Precio (S/) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
-
-              <div>
-                <Label>Stock *</Label>
-                <Input
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-
-              <Button onClick={handleSave} className="w-full">
-                <Save className="w-4 h-4 mr-2" />
-                {editingMenu ? 'Actualizar Menú' : 'Crear Menú'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold">Gestión de Menús Diarios</h2>
+          <p className="text-sm text-muted-foreground">Publica los menús de cada día y controla su stock</p>
+        </div>
+        <Button className="h-10 font-semibold" onClick={() => setEditing(null)} disabled={!dishesQuery.data}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Menú
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {menus.map((menu) => (
-          <Card key={menu.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">
-                  {format(new Date(menu.date), "EEEE, d 'de' MMMM", { locale: es })}
-                </CardTitle>
-                <p className="text-xl font-bold text-primary">S/ {typeof menu.price === 'string' ? parseFloat(menu.price).toFixed(2) : menu.price.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm text-muted-foreground">Stock:</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleStockUpdate(menu.id, menu.stock, -1)}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="font-medium px-2">{menu.stock}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleStockUpdate(menu.id, menu.stock, 1)}
-                  >
-                    <PlusIcon className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm mb-4">
-                {menu.appetizer && (
-                  <p><strong>🥗 Entrada:</strong> {menu.appetizer.name}</p>
-                )}
-                {menu.main_dish && (
-                  <p><strong>🍽️ Principal:</strong> {menu.main_dish.name}</p>
-                )}
-                {menu.drink && (
-                  <p><strong>🥤 Bebida:</strong> {menu.drink.name}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => handleEdit(menu)} className="flex-1">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => handleDelete(menu.id)} className="flex-1">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {lowStock.length > 0 && (
+        <Alert className="border-warning/50 bg-warning/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            {lowStock.length} {lowStock.length === 1 ? 'menú con stock bajo' : 'menús con stock bajo'}
+          </AlertTitle>
+          <AlertDescription>
+            {lowStock
+              .slice(0, 6)
+              .map((m) => `${format(parseLocalDate(m.date), "EEEE d", { locale: es })} (${m.stock <= 0 ? 'agotado' : m.stock})`)
+              .join(' · ')}
+            {lowStock.length > 6 && ' …'}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <AdminToolbar>
+        <ChipGroup
+          value={range}
+          options={RANGE_OPTIONS}
+          onChange={(value) => {
+            setRange(value);
+            setCurrentPage(1);
+          }}
+          ariaLabel="Fechas"
+        />
+      </AdminToolbar>
+
+      {menusQuery.isLoading ? (
+        <AdminMenuGridSkeleton className={CARD_GRID_COLUMNS} />
+      ) : menusQuery.isError ? (
+        <ErrorState title="No se pudieron cargar los menús" onRetry={() => menusQuery.refetch()} />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={CalendarDays}
+          title={menus.length === 0 ? 'Aún no hay menús' : range === 'past' ? 'No hay menús pasados' : 'No hay menús próximos'}
+          description={menus.length === 0 || range === 'upcoming' ? 'Publica un menú para que los usuarios puedan reservar' : undefined}
+          action={{ label: 'Nuevo menú', onClick: () => setEditing(null) }}
+        />
+      ) : (
+        <>
+          <ResultsSummary count={filtered.length} singular="menú" plural="menús" />
+          <div className={cn('grid gap-5', CARD_GRID_COLUMNS)}>
+            {visible.map((menu) => (
+              <AdminMenuCard
+                key={menu.id}
+                menu={menu}
+                past={menu.date < today}
+                busy={step.isPending && step.variables?.menu.id === menu.id}
+                onEdit={setEditing}
+                onDelete={setDeleting}
+                onStockStep={(m, delta) => step.mutate({ menu: m, delta })}
+                onStockDetail={(m) => setStockMenuId(m.id)}
+              />
+            ))}
+          </div>
+          <PaginationBar page={page} totalPages={totalPages} onChange={setCurrentPage} />
+        </>
+      )}
+
+      {editing !== undefined && dishesQuery.data && (
+        <MenuFormDialog
+          key={editing?.id ?? 'new'}
+          menu={editing}
+          menus={menus}
+          dishes={dishesQuery.data}
+          onClose={() => setEditing(undefined)}
+        />
+      )}
+      {stockMenu && <StockDialog key={stockMenu.id} menu={stockMenu} onClose={() => setStockMenuId(null)} />}
+
+      <ConfirmDialog
+        open={!!deleting}
+        title="Eliminar menú"
+        description={
+          deleting && (
+            <>
+              ¿Eliminar el menú del{' '}
+              <strong>{format(parseLocalDate(deleting.date), "EEEE d 'de' MMMM", { locale: es })}</strong>
+              {deleting.main_dish ? ` (${deleting.main_dish.name})` : ''}? Esta acción no se puede deshacer.
+            </>
+          )
+        }
+        confirmLabel="Eliminar"
+        busyLabel="Eliminando..."
+        busy={remove.isPending}
+        onConfirm={() => deleting && remove.mutate(deleting)}
+        onClose={() => setDeleting(null)}
+      />
     </div>
   );
 }

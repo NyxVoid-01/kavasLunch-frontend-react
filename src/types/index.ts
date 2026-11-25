@@ -49,7 +49,7 @@ export interface Reservation {
   quantity?: number;
   total_price?: string; // Para compatibilidad
   status: 'pending' | 'confirmed' | 'cancelled' | 'delivered';
-  payment_status?: 'pending' | 'paid';
+  payment_status?: 'pending' | 'paid' | 'failed';
   payment_method?: string; // cash, card, yape
   time_slot?: string; // Para compatibilidad
   time_slot_display?: string;
@@ -96,21 +96,34 @@ export interface PaymentMethod {
   description: string;
   enabled: boolean;
   instructions?: string;
+  phone?: string | null; // Número al que se envía el pago (Yape / Plin)
 }
 
+// La pasarela es simulada: no se capturan datos de tarjeta ni se exige comprobante
 export interface ProcessPaymentData {
   reservation_id: string;
-  payment_method: 'yape' | 'credit_card' | 'cash';
-  payment_proof_url?: string; // Para Yape/Plin
-  card_number?: string; // Para tarjeta
-  card_expiry?: string; // Para tarjeta
-  card_cvv?: string; // Para tarjeta
+  payment_method: PaymentMethodId;
+  payment_proof_url?: string; // Opcional
+}
+
+// Solicitud de pago de Yape/Plin o tarjeta (RF-014): se acepta solo dentro de los 3 minutos siguientes
+export interface PaymentRequest {
+  id: string;
+  reservation_id: string;
+  method: Exclude<PaymentMethodId, 'cash'>;
+  amount: string;
+  transaction_code: string;
+  expires_at: string;
+  expires_in_seconds: number;
+  window_minutes: number;
+  phone: string | null;
 }
 
 export interface TimeSlot {
-  value: string;
+  value: string; // 'HH:mm': es lo que se envía al reservar
   label: string;
   available: boolean;
+  capacity_available?: number;
 }
 
 // Tipos de respuesta de la API
@@ -153,4 +166,31 @@ export interface DashboardStats {
   today_reservations: number;
   total_revenue: string;
   pending_reservations: number;
+}
+
+export type ReservationStatus = 'pending' | 'delivered' | 'cancelled' | 'expired';
+export type PaymentMethodId = 'yape' | 'plin' | 'credit_card' | 'cash';
+
+// Reserva tal como la devuelve la API del usuario (/api/user/reservations)
+export interface UserReservation {
+  id: string;
+  code: string;
+  reservation_date: string; // 'YYYY-MM-DD'
+  pickup_time_slot: string | null; // 'HH:mm'
+  pickup_time_slot_full: string | null;
+  pickup_window_end: string | null; // 'HH:mm'
+  expired_at: string | null;
+  status: ReservationStatus;
+  payment_method: PaymentMethodId;
+  payment_status: 'pending' | 'paid' | 'failed';
+  qr_code_url: string | null;
+  delivered_at: string | null;
+  menu: {
+    id: string;
+    date: string;
+    price: string;
+    appetizer: string | null; // nombre del plato
+    main_dish: string | null;
+    drink: string | null;
+  };
 }

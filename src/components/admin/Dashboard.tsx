@@ -1,207 +1,93 @@
-import { useEffect, useState } from 'react';
-import { getDashboardStats, getTodayReservations } from '@/services/admin';
-import type { DashboardStats, Reservation } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Package, TrendingUp, Users, Clock } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle, Ban, CalendarCheck, CheckCircle, Clock, TrendingUp, UtensilsCrossed, Package } from 'lucide-react';
+import { getDashboardStats, getReservationsOfDay } from '@/services/admin';
+import { todayISO } from '@/lib/dates';
+import TodayReservationsCard, { TodayReservationsCardSkeleton } from '@/components/admin/dashboard/TodayReservationsCard';
+import StatCard, { StatCardSkeleton } from '@/components/StatCard';
+import { ErrorState } from '@/components/StateMessages';
+
+const REFRESH_MS = 30_000;
+const STAT_GRID = 'grid gap-4 sm:grid-cols-2 xl:grid-cols-4';
+const STAT_COUNT = 8;
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    today_reservations: 0,
-    pending_reservations: 0,
-    delivered_reservations: 0,
-    today_revenue: 0,
-    total_dishes: 0,
-    active_menus: 0,
-    low_stock_menus: 0,
+  const today = todayISO();
+
+  const stats = useQuery({ queryKey: ['admin', 'dashboard'], queryFn: getDashboardStats, refetchInterval: REFRESH_MS });
+  // Misma consulta que el despacho: se comparte la caché del día
+  const day = useQuery({
+    queryKey: ['admin', 'day-reservations', today],
+    queryFn: () => getReservationsOfDay(today),
+    refetchInterval: REFRESH_MS,
   });
-  const [recentReservations, setRecentReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const header = (
+    <div>
+      <h2 className="text-2xl font-bold">Dashboard</h2>
+      <p className="text-sm text-muted-foreground">Resumen general del sistema</p>
+    </div>
+  );
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Obtener estadísticas del dashboard desde Laravel
-      const dashboardStats = await getDashboardStats();
-      
-      // Obtener reservas de hoy
-      const todayRes = await getTodayReservations();
-      
-      // Filtrar reservas canceladas para la lista visible
-      const activeReservations = todayRes.filter(r => r.status !== 'cancelled');
-      setRecentReservations(todayRes); // Mostrar todas incluyendo canceladas
-      
-      // Recalcular ingresos excluyendo canceladas
-      const actualRevenue = todayRes
-        .filter(r => r.status !== 'cancelled')
-        .reduce((sum, r) => {
-          const price = typeof r.menu?.price === 'string' 
-            ? parseFloat(r.menu.price) 
-            : (r.menu?.price || 0);
-          return sum + price;
-        }, 0);
-      
-      // Recalcular pendientes (confirmadas pero no entregadas)
-      const pendingCount = todayRes.filter(r => 
-        r.status === 'confirmed' || r.status === 'pending'
-      ).length;
-      
-      // Actualizar stats con valores corregidos
-      setStats({
-        ...dashboardStats,
-        today_revenue: actualRevenue,
-        pending_reservations: pendingCount,
-        today_reservations: activeReservations.length, // Solo contar las activas
-      });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-      confirmed: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-      delivered: 'bg-green-500/10 text-green-700 dark:text-green-400',
-      cancelled: 'bg-red-500/10 text-red-700 dark:text-red-400',
-    };
-    const labels = {
-      pending: 'Pendiente',
-      confirmed: 'Confirmado',
-      delivered: 'Entregado',
-      cancelled: 'Cancelado',
-    };
+  if (stats.isError || day.isError) {
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles] || styles.pending}`}>
-        {labels[status as keyof typeof labels] || status}
-      </span>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Cargando dashboard...</p>
-        </div>
+      <div className="space-y-4">
+        {header}
+        <ErrorState
+          title="No se pudo cargar el resumen"
+          onRetry={() => {
+            stats.refetch();
+            day.refetch();
+          }}
+        />
       </div>
     );
   }
 
+  if (!stats.data || !day.data) {
+    return (
+      <div className="space-y-4" aria-busy="true" aria-label="Cargando resumen">
+        {header}
+        <div className={STAT_GRID}>
+          {Array.from({ length: STAT_COUNT }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <TodayReservationsCardSkeleton />
+      </div>
+    );
+  }
+
+  const s = stats.data;
+  const summary = day.data.summary;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-        <p className="text-muted-foreground">Resumen general del sistema</p>
+    <div className="space-y-4">
+      {header}
+
+      <div className={STAT_GRID}>
+        <StatCard title="Reservas Hoy" icon={CalendarCheck} value={s.today_reservations} caption="Reservas vigentes de hoy" />
+        <StatCard title="Entregas Pendientes" icon={Clock} value={s.pending_reservations} caption="Pedidos por entregar" valueClassName="text-warning" />
+        <StatCard title="Entregados" icon={CheckCircle} value={s.delivered_reservations} caption="Pedidos entregados hoy" valueClassName="text-success" />
+        <StatCard title="Ingresos Hoy" icon={TrendingUp} value={`S/ ${Number(s.today_revenue).toFixed(2)}`} caption="Sin canceladas ni vencidas" valueClassName="text-success" />
+        <StatCard title="Menús Activos" icon={UtensilsCrossed} value={s.active_menus} caption="Menús disponibles" />
+        <StatCard
+          title="Stock Bajo"
+          icon={AlertTriangle}
+          value={s.low_stock_menus}
+          caption="Menús con 10 porciones o menos"
+          valueClassName={s.low_stock_menus > 0 ? 'text-destructive' : 'text-primary'}
+        />
+        <StatCard title="Platos Activos" icon={Package} value={s.total_dishes} caption="Platos en el sistema" />
+        <StatCard
+          title="Canceladas / Vencidas"
+          icon={Ban}
+          value={summary.cancelled + summary.expired}
+          caption="De las reservas de hoy"
+          valueClassName="text-muted-foreground"
+        />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Reservas Hoy</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.today_reservations}</div>
-            <p className="text-xs text-muted-foreground mt-1">Reservas para hoy</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Entregas Pendientes</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">{stats.pending_reservations}</div>
-            <p className="text-xs text-muted-foreground mt-1">Pedidos por entregar</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Hoy</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">S/ {stats.today_revenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Ingresos de hoy</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Platos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total_dishes}</div>
-            <p className="text-xs text-muted-foreground mt-1">Platos en el sistema</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Menús Activos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active_menus}</div>
-            <p className="text-xs text-muted-foreground mt-1">Menús disponibles</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Reservas Recientes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reservas de Hoy</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentReservations.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No hay reservas para hoy</p>
-          ) : (
-            <div className="space-y-4">
-              {recentReservations.map((reservation) => (
-                <div 
-                  key={reservation.id} 
-                  className={`flex items-center justify-between border-b pb-3 last:border-0 ${
-                    reservation.status === 'cancelled' ? 'opacity-50' : ''
-                  }`}
-                >
-                  <div className="flex-1">
-                    <p className={`font-medium ${reservation.status === 'cancelled' ? 'line-through' : ''}`}>
-                      {reservation.user?.full_name || reservation.user?.email || 'Usuario'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        {reservation.pickup_time_slot || reservation.time_slot || 'Sin horario'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {getStatusBadge(reservation.status)}
-                    <p className={`text-xs mt-1 ${reservation.status === 'cancelled' ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
-                      S/ {typeof reservation.menu?.price === 'string' 
-                        ? parseFloat(reservation.menu.price).toFixed(2) 
-                        : reservation.menu?.price?.toFixed(2) || '0.00'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <TodayReservationsCard reservations={day.data.reservations} />
     </div>
   );
 }

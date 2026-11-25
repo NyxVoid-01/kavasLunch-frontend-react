@@ -13,14 +13,14 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
   
   // Laravel devuelve { success, data: { user, token } }
   if (response.data.success && response.data.data) {
-    const { user, token } = response.data.data;
+    const { user, token, token_type, expires_in } = response.data.data;
     
     if (user && token) {
       // Guardar token y usuario en localStorage
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      return { user, token };
+      return { user, token, token_type, expires_in };
     }
   }
   
@@ -34,14 +34,14 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
   
   // Laravel devuelve { success, data: { user, token } }
   if (response.data.success && response.data.data) {
-    const { user, token } = response.data.data;
+    const { user, token, token_type, expires_in } = response.data.data;
     
     if (user && token) {
       // Guardar token y usuario en localStorage
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      return { user, token };
+      return { user, token, token_type, expires_in };
     }
   }
   
@@ -121,4 +121,21 @@ export const getCurrentUser = (): User | null => {
 // Verificar si está autenticado
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('auth_token');
+};
+
+// Solicitar enlace de recuperación de contraseña (la respuesta es la misma exista o no la cuenta)
+export const forgotPassword = async (email: string): Promise<string> => {
+  const response = await api.post('/api/auth/forgot-password', { email });
+  return response.data.message;
+};
+
+// Restablecer la contraseña con el token recibido por correo
+export const resetPassword = async (data: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<string> => {
+  const response = await api.post('/api/auth/reset-password', data);
+  return response.data.message;
 };

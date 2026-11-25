@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { Reservation, TimeSlot } from '@/types';
+import type { TimeSlot, UserReservation } from '@/types';
 
 // ============================================
 // TIPOS PARA CREAR RESERVA
@@ -8,6 +8,7 @@ import type { Reservation, TimeSlot } from '@/types';
 export interface CreateReservationData {
   menu_id: string;
   reservation_date: string;
+  pickup_time_slot?: string; // 'HH:mm'; si no se envía, el servidor asigna el siguiente libre
   payment_method: string;
 }
 
@@ -18,7 +19,7 @@ export interface CreateReservationData {
 /**
  * Obtener todas las reservas del usuario autenticado
  */
-export const getUserReservations = async (): Promise<Reservation[]> => {
+export const getUserReservations = async (): Promise<UserReservation[]> => {
   const response = await api.get('/api/user/reservations');
   return response.data.data.reservations;
 };
@@ -26,37 +27,33 @@ export const getUserReservations = async (): Promise<Reservation[]> => {
 /**
  * Crear una nueva reserva
  */
-export const createReservation = async (data: CreateReservationData): Promise<Reservation> => {
+export const createReservation = async (data: CreateReservationData): Promise<UserReservation> => {
   const response = await api.post('/api/user/reservations', data);
   return response.data.data.reservation;
 };
 
 /**
- * Obtener slots horarios disponibles para una fecha y menú
+ * Turnos de recojo del día para un menú, incluidos los que no se pueden elegir (llenos o terminados)
  */
 export const getAvailableSlots = async (menuId: string, date: string): Promise<TimeSlot[]> => {
   const response = await api.get('/api/user/reservations/available-slots', {
-    params: { 
-      menu_id: menuId,
-      date 
-    }
+    params: { menu_id: menuId, date },
   });
-  
-  // El backend devuelve available_slots con estructura diferente
-  const backendSlots = response.data.data.available_slots || [];
-  
-  // Mapear la respuesta del backend al formato que espera el frontend
-  return backendSlots.map((slot: any) => ({
+
+  const slots: { time: string; available: boolean; capacity_available: number }[] = response.data.data.slots ?? [];
+
+  return slots.map((slot) => ({
     value: slot.time,
     label: slot.time,
-    available: slot.capacity_available > 0
+    available: slot.available,
+    capacity_available: slot.capacity_available,
   }));
 };
 
 /**
  * Obtener detalle de una reserva específica
  */
-export const getReservationById = async (id: string): Promise<Reservation> => {
+export const getReservationById = async (id: string): Promise<UserReservation> => {
   const response = await api.get(`/api/user/reservations/${id}`);
   return response.data.data.reservation;
 };
